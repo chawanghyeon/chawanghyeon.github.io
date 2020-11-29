@@ -97,12 +97,12 @@ author:
   name             : "Cha Wanghyeon"
   avatar           : /assets/images/chawanghyeon.PNG # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "I am a happy person."
-  location         : "Korea"
+  location         : "South Korea"
   email            :
   links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
-      # url: "chawanghyeon@gmail.com"
+      url: "chawanghyeon@gmail.com"
     - label: "Website"
       icon: "fas fa-fw fa-link"
       # url: "https://github.com/chawanghyeon"
@@ -114,7 +114,7 @@ author:
       # url: "https://facebook.com/"
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      # url: "https://github.com/chawanghyeon"
+      url: "https://github.com/chawanghyeon"
     - label: "Instagram"
       icon: "fab fa-fw fa-instagram"
       # url: "https://instagram.com/"
@@ -130,7 +130,7 @@ footer:
       # url:
     - label: "GitHub"
       icon: "fab fa-fw fa-github"
-      # url:
+      url: "https://github.com/chawanghyeon"
     - label: "GitLab"
       icon: "fab fa-fw fa-gitlab"
       # url:
@@ -210,7 +210,7 @@ sass:
 permalink: /:categories/:title/
 paginate: 5 # amount of posts to show
 paginate_path: /page:num/
-timezone: # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone: Asia/Seoul # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
 # Plugins (previously gems:)
@@ -240,12 +240,12 @@ whitelist:
 #  - <base_path>/tags/my-awesome-tag/index.html ~> path: /tags/
 #  - <base_path>/categories/my-awesome-category/index.html ~> path: /categories/
 #  - <base_path>/my-awesome-category/index.html ~> path: /
-category_archive:
-  type: liquid
-  path: /categories/
-tag_archive:
-  type: liquid
-  path: /tags/
+#category_archive:
+  #type: liquid
+  #path: /categories/
+#tag_archive:
+  #type: liquid
+  #path: /tags/
 # https://github.com/jekyll/jekyll-archives
 # jekyll-archives:
 #   enabled:
