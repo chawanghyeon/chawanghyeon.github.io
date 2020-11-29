@@ -1,10 +1,7 @@
 ---
 title: 'DiscreteMathematics'
 date: 2020-10-01T10:53:05+09:00
-draft: false
-description: 'DiscreteMathematics'
-tags: [DiscreteMathematics]
-categories: [DiscreteMathematics]
+categories: DiscreteMathematics
 ---
 
 # Proposition
