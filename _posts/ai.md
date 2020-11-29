@@ -1,0 +1,154 @@
+---
+title: 'Ai'
+date: 2020-09-30T16:56:04+09:00
+draft: false
+description: 'Ai'
+tags: [Ai]
+categories: [Ai]
+---
+
+# Artificial inteligence
+
+- Artificial life  
+It can self-replicate
+
+- Hard artificial life  
+It is a machine that thinks like human
+
+- Soft artificial life  
+It exists in software program
+
+- Wet artificial life - Artificial life
+
+- Automata theory  
+It is a theory that expresses the time passing and state changes and studies the spatial structural changes over time.  
+State machine: The concept of reaction to memory and stimulation of the state  
+Finite automaton: machine that has finite state
+
+- Agent  
+System that takes the lead state machine  
+In system agent is the main agent of action  
+Specific: Autonomy, Social ability, Reactivity, Proactivity, Temporal continuity, Goal-orientedness
+
+---
+
+# Linear and nonlinear
+- Variable  
+  The item that constitutes the data.
+- Feature  
+  A formula that uses a pair of variables, or a pair of variables, that represents a change in the data.
+- [Linear programming](https://en.wikipedia.org/wiki/Linear_programming)
+- [Nonlinear programming](https://en.wikipedia.org/wiki/Nonlinear_programming)
+- [Regression analysis](https://en.wikipedia.org/wiki/Regression_analysis)
+- [Curve fitting](https://en.wikipedia.org/wiki/Curve_fitting)
+- [Errors and residuals](https://en.wikipedia.org/wiki/Errors_and_residuals)
+- [Overfitting](https://en.wikipedia.org/wiki/Overfitting)
+- [Logistic regression](https://en.wikipedia.org/wiki/Logistic_regression)
+- [Weighted least squares](https://en.wikipedia.org/wiki/Weighted_least_squares)
+- [Least squares](https://en.wikipedia.org/wiki/Least_squares)
+- [Local regression](https://en.wikipedia.org/wiki/Local_regression)
+- [Regularization](https://en.wikipedia.org/wiki/Regularization_(mathematics))
+- [Elastic net](https://en.wikipedia.org/wiki/Elastic_net_regularization)
+
+---
+
+# Similarity
+- [similarity](https://en.wikipedia.org/wiki/Cosine_similarity)
+- [Pearson correlation coefficient](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient)
+- [Corralation coefficient](https://en.wikipedia.org/wiki/Correlation_coefficient)
+- [Edit distance](https://en.wikipedia.org/wiki/Edit_distance)
+- [Jaccard index](https://en.wikipedia.org/wiki/Jaccard_index)
+
+---
+
+# [Graph](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics))
+
+---
+
+# [Search tree](https://en.wikipedia.org/wiki/Search_tree)
+
+---
+
+# Search method
+- [A* search algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm)
+- [Game tree](https://en.wikipedia.org/wiki/Game_tree)
+- [Alpha beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
+- [Minimax](https://en.wikipedia.org/wiki/Minimax)
+- [Binary decision diagram](https://en.wikipedia.org/wiki/Binary_decision_diagram)
+- [Zero suppressed decision diagram](https://en.wikipedia.org/wiki/Zero-suppressed_decision_diagram)
+- [Dunamic programming](https://en.wikipedia.org/wiki/Dynamic_programming)
+
+---
+
+# [Genetic algorithm](https://en.wikipedia.org/wiki/Genetic_algorithm)
+
+---
+
+# [Artificial neural network](https://en.wikipedia.org/wiki/Artificial_neural_network)
+
+- [Boltzmann machine](https://en.wikipedia.org/wiki/Boltzmann_machine)
+- [Simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing)
+- [Backpropagation](https://en.wikipedia.org/wiki/Backpropagation)
+- [Multilayer perceptron](https://en.wikipedia.org/wiki/Multilayer_perceptron)
+- [Self organizing map](https://en.wikipedia.org/wiki/Self-organizing_map)
+- [Convolutional neural network](https://en.wikipedia.org/wiki/Convolutional_neural_network)
+- [Recurrent neural network](https://en.wikipedia.org/wiki/Recurrent_neural_network)
+
+---
+
+# [Statistical model](https://en.wikipedia.org/wiki/Statistical_model)
+
+
+[Machine learning](https://en.wikipedia.org/wiki/Machine_learning)
+- [Maximum likelihood estimation](https://en.wikipedia.org/wiki/Maximum_likelihood_estimation)
+- [Expextation maximization algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm)
+- [Gradient descent](https://en.wikipedia.org/wiki/Gradient_descent)
+
+Basis function
+- [Normal distribution](https://en.wikipedia.org/wiki/Normal_distribution)
+- [Gamma distribution](https://en.wikipedia.org/wiki/Gamma_distribution)
+- [Exponential distribution](https://en.wikipedia.org/wiki/Exponential_distribution)
+- [Laplace distribution](https://en.wikipedia.org/wiki/Laplace_distribution)
+- [Beta distribution](https://en.wikipedia.org/wiki/Beta_distribution)
+- [Dirichlet distribution](https://en.wikipedia.org/wiki/Dirichlet_distribution)
+- [Binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution)
+- [Negative binomial distribution](https://en.wikipedia.org/wiki/Negative_binomial_distribution)
+- [Poisson distribution](https://en.wikipedia.org/wiki/Poisson_distribution)
+- [Chi square distribution](https://en.wikipedia.org/wiki/Chi-square_distribution)
+- [Hypergeometric distribution](https://en.wikipedia.org/wiki/Hypergeometric_distribution)
+- [Cauchy distribution](https://en.wikipedia.org/wiki/Cauchy_distribution)
+- [Logistic distribution](https://en.wikipedia.org/wiki/Logistic_distribution)
+- [Weibull distribution](https://en.wikipedia.org/wiki/Weibull_distribution)
+
+
+[Bayesian statistics](https://en.wikipedia.org/wiki/Bayesian_statistics)  
+- [Bayesian inference](https://en.wikipedia.org/wiki/Bayesian_inference)
+- [Monte Carlo method](https://en.wikipedia.org/wiki/Monte_Carlo_method)
+- [Metropolis-Hastings algorithm](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm)
+- [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo)
+- [Hidden Markov model](https://en.wikipedia.org/wiki/Hidden_Markov_model)
+- [Baum-Welch algorithm](https://en.wikipedia.org/wiki/Baum%E2%80%93Welch_algorithm)
+- [Bayesian network](https://en.wikipedia.org/wiki/Bayesian_network)
+
+---
+
+# [Machine learning](https://en.wikipedia.org/wiki/Machine_learning)
+
+Typical approach of Unsupervised learning  
+- [Cluster analysis](https://en.wikipedia.org/wiki/Cluster_analysis)
+- [Principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis)
+
+Typical approach of Supervised learning  
+- [Support verctor machine](https://en.wikipedia.org/wiki/Support_vector_machine)
+- [Recursive Bayesian estimation](https://en.wikipedia.org/wiki/Recursive_Bayesian_estimation)
+- [ID3 algorithm](https://en.wikipedia.org/wiki/ID3_algorithm)
+
+---
+
+# [Reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning)
+
+- [Ensemble learning](https://en.wikipedia.org/wiki/Ensemble_learning)
+
+---
+
+# [Intelligent agent](https://en.wikipedia.org/wiki/Intelligent_agent)

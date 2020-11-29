@@ -1,0 +1,335 @@
+---
+title: 'Database'
+date: 2020-09-23T11:10:48+09:00
+draft: false
+description: 'database'
+tags: [database]
+categories: [database]
+---
+
+# Definition of database
+
+1. Integrated data
+2. Stored data
+3. Operational data
+4. Shared data
+
+---
+
+# Feature of database
+
+1. Simultaneous common use
+2. Reference by content
+3. Real-time accessibility
+4. Continuous change
+
+---
+
+# Database management system
+
+The database management system (DBMS) is the software that interacts with end users, applications, and the database itself to capture and analyze the data.
+
+1. Data definition – Creation, modification and removal of definitions that define the organization of the data.
+2. Update – Insertion, modification, and deletion of the actual data.
+3. Retrieval – Providing information in a form directly usable or for further processing by other applications. The retrieved data may be made available in a form basically the same as it is stored in the database or in a new form obtained by altering or combining existing data from the database.
+4. Administration – Registering and monitoring users, enforcing data security, monitoring performance, maintaining data integrity, dealing with concurrency control, and recovering information that has been corrupted by some event such as an unexpected system failure.
+
+Advantage
+
+1. Controlling duplication of data
+2. Economics of scale
+3. Availability of up-to-data
+4. Can change structure
+5. Shortening time
+6. Standardized data management
+
+---
+
+# Database system
+
+Components of database system
+
+1. Database
+2. Schema
+3. Database management system
+4. Database language
+5. Database computer
+6. Database users
+
+Feature of database system
+
+1. Data storage, retrieval and update
+2. User accessible catalog or data dictionary describing the metadata
+3. Support for transactions and concurrency
+4. Facilities for recovering the database should it become damaged
+5. Support for authorization of access and update of data
+6. Access support from remote locations
+7. Enforcing constraints to ensure data in the database abides by certain rules
+
+---
+
+# Object database
+
+An object database is a database management system in which information is represented in the form of objects as used in object-oriented programming. Object databases are different from relational databases which are table-oriented. Object-relational databases are a hybrid of both approaches.
+
+---
+
+# Data model
+
+It is a model that is simplified and systematically expressed in order to express in a computer.
+
+Flow
+
+1. Reality world
+2. Conceptual design
+3. Logical design
+4. Physical design
+
+Elements to be displayed
+
+- Data structure
+- Computation
+- Constraints
+- User defined operation
+
+Components
+
+- Entity
+- Attribute
+- Relationship
+
+Classification of data models
+
+- Physical model
+- Conceptual model
+- Expression Model
+
+---
+
+# Data schema and Instance
+
+Data schema is Description of the structure and constraints.
+
+The data schema diagram is a schematic diagram of the schema.
+
+Data instance is a data in the database.
+
+3 - steps schema architecture
+
+1. External schema
+
+- Sub schema, User view
+- definition of structure that one needs from one's own point of view
+- multiple existence
+
+2. Conceptual schema
+
+- only one data aggregate.
+
+3. Internal schema
+
+- Actual structure viewed from physical storage device
+
+1 (External / Conceptual mapping) 2 Conceptual / Internal mapping 3
+
+> It has Data independency
+
+---
+
+# Database language
+
+Data definition language
+
+- Defining external schema
+
+Data manipulation language
+
+- Query language
+
+Data control language
+
+- setting security
+
+---
+
+# DBMS component modules
+
+- Data define language compiler
+- Query compiler
+- Qurey optimizer
+- Precompiler
+- Data manipulation language compiler
+- Host language compiler
+- Runtime database processor
+- Stored data manager
+
+---
+
+# Server-Client Architecture
+
+Centralized Architecture: A structure that gathers everything in one system.
+
+2-tier server-client architecture: Designate special servers with specific functions of client-server architecture.
+
+3-tier server-client architecture: Adding a Web server between a client and a database server
+
+---
+
+# Requirement analysis
+
+1. Conceptual design: ER model, conceptual schema
+2. logical design: relational model, logical schema
+3. physical design
+
+Entity: Object  
+Attribute: explain entity
+
+Entity has value about each attribute  
+Entity type: It is a group that has same attribute  
+Key attribute: only one value  
+Relationship: connects two or more entity  
+Cardinality constraints: Specifies the maximum number of relationships that an entity can participate in.
+
+Weak entity type: It doesn't have key attribute, Depend on other entity, it musts pacitipate Identification entity type and Identification relationship type
+
+Recursive ralationship type: duplicate participation
+
+2 Relational: Relational type of two relational types  
+3 Relational: Relational type of three ralational types
+
+---
+
+# Relational
+
+Relationship is a mathematical concept based on Set theory
+
+Attribute < tuple < relational < database
+
+## Key of relational
+
+Each relationship should have a property that allows the only distinguishing between the tuple that it contains.
+
+## Relational schema
+
+It marks as a names and set of attributes.
+
+## Domian
+
+The set of values that a property can have.
+
+## Tuple of relational
+
+The set of ordinalized values t = <v1, v2, v3, ..., vn>
+
+## Instance r of relational R
+
+The set of tuples r(R) = {t1, t2, ..., tm}  
+The order of tuple is meaningless.  
+But the order of values within the tuple must be kept.  
+Property values within the tuple can no longer be divided. (Atomic Value)  
+If can't know value, use null
+
+## Notation
+
+Capital letter Q, R, S, etc. indicate name of relational  
+Small letter q, r, s, etc. indicate state of relational  
+Small letter t, u, v, etc. indicate tuple
+
+## Integrity Constraints
+
+It is a condition that all relational instances must always be satisfied.
+
+## Domain constraints
+
+For each tuple, the value corresponding to attribute A must be the atomic value belonging to domain dom(A) of A.
+
+## key constraints
+
+The value corresponding to the key attribute must be unique and is a constraint that it cannot have a null value.
+
+## Referential Integrity Constraints
+
+It is a constraint about the two relationships.
+
+## Business Rule/Semantic integrity Constraints
+
+Rules of each department or conditions
+
+## Type of key
+
+Key that has uniqueness and minimality
+
+Candidate key: The set of all possible key  
+Primary key: The key selected by the designer among the candidate keys  
+Alternate key: Unselected Key  
+Super key: Super Set that contains key, Key that has only uniqueness  
+Foreign key: This key is for reference only.
+
+## Relational Database Schema
+
+It consists of set of relational schemas and integrity constraints
+S = {R1, R2, ..., Rn}
+
+---
+
+# Constraint Violation Handling
+
+The update operation for the relationship is checked by dbms. It shall not violate integrity constraints.
+
+If the constraints are violated,
+
+- Cancle the operation
+- Correct the violation.
+- Notify users after performing an operation
+
+Violation of Constraints in Insertion Computation
+
+- Domain constraint violation  
+  If the property value at the inserted t is not in domain, the domain constraint is violated.
+- Key constraint violation  
+  In tuple, if the default key value already exists in another tuple, it violates the key constraint.
+- Entity constraint violation  
+  In tuple, if the default key value is null, it violates the entity constraint
+- Referential constraint violation  
+  If the value in tuple does not belong to the key value set of relationships referenced, it violates the referential constraint
+
+If insertion computation violates constraints, Problems appear in both insertion and deletion
+
+Violation of Constraints in Deletion Computation
+
+- Referential constrains violation  
+  If the tuple is deleted, check that it is referenced by another table and delete it only if it is not
+
+If deletion computation violates constraints
+
+- Reject Delete
+- Delete all tuples that refer to the tuple that is deleted
+- Change the foreign key value to null, or change it to refer to another useful tuple.
+
+---
+
+# [ER-Relation Mapping](https://www.geeksforgeeks.org/mapping-from-er-model-to-relational-model/)
+
+Mapping of relation type  
+Consideration
+- Comply with the constraints of the relationship
+- Comply with key integrity
+- Avoid the occurrence of a null value
+- Consider the number of join operations
+- Consider performance of search and store
+
+---
+
+# [Relational algrbra](https://en.wikipedia.org/wiki/Relational_algebra)
+
+---
+
+# [Structured Query Language(SQL)](https://en.wikipedia.org/wiki/SQL)
+
+---
+
+# [Functional dependency](https://en.wikipedia.org/wiki/Functional_dependency)
+
+---
+
+# [Database transaction](https://en.wikipedia.org/wiki/Database_transaction)

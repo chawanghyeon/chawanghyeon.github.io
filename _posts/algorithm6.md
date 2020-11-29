@@ -1,0 +1,33 @@
+---
+title: "Programmers 가운데 글자 가져오기"
+date: 2020-11-23T22:14:20+09:00
+draft: false
+description: "Programmers 가운데 글자 가져오기"
+tags: [algorithm]
+categories: [algorithm]
+---
+단어 s의 가운데 글자를 반환하는 함수, solution을 만들어 보세요. 단어의 길이가 짝수라면 가운데 두글자를 반환하면 됩니다.
+
+제한사항
+- s는 길이가 1 이상, 100이하인 스트링입니다.
+
+풀이
+```
+class Solution {
+
+  public String solution(String s) {
+    String answer = "";
+    int a = s.length() / 2;
+    int b = s.length() % 2;
+    if(b == 1){
+      answer += s.charAt(a);
+    }else{
+      answer += s.charAt(a - 1);
+      answer += s.charAt(a);
+    }
+    return answer;
+  }
+  
+}
+```
+s의 길이를 나머지 연산으로 나누는 방식으로 풀었습니다.
