@@ -6,7 +6,7 @@ description: 'JAVA-Mini-Project-MVC-Food'
 tags: [JAVA-Mini-Project-MVC-Food]
 categories: [projects]
 ---
-# JAVA-Mini-Project-MVC-Food
+# [JAVA-Mini-Project-MVC-Food](https://github.com/chawanghyeon/JAVA-Mini-Project-MVC-Food)
 
 ### 프로젝트 선정 이유
 MVC패턴을 학습하기 위해서 선정했습니다.
