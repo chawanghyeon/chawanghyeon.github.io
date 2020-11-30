@@ -6,7 +6,7 @@ description: 'JAVA-Mini-Project-MVC-Pattern'
 tags: [JAVA-Mini-Project-MVC-Pattern]
 categories: [projects]
 ---
-# JAVA-Mini-Project-MVC-Pattern
+# [JAVA-Mini-Project-MVC-Pattern](https://github.com/chawanghyeon/JAVA-Mini-Project-MVC-Pattern)
 
 MVC패턴을 공부하면서 Mini project를 만들었습니다.
 
