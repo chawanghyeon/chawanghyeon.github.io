@@ -1,6 +1,6 @@
 ---
 title: 'JAVA-Mini-Project-MVC-Pattern'
-date: 2020-11-26
+date: 2020-11-04
 draft: false
 description: 'JAVA-Mini-Project-MVC-Pattern'
 tags: [JAVA-Mini-Project-MVC-Pattern]
