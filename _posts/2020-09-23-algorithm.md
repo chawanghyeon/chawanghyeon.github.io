@@ -114,28 +114,20 @@ External sort: Sort information stored in Auxiliary memory
 
 Considerations when selecting sorting algorithms
 
-- Distribution status of key values
-- Space required and working hours
-- Amount of data
-- Characteristics of computer system
+1. Distribution status of key values
+2. Space required and working hours
+3. Amount of data
+4. Characteristics of computer system
 
-## [Merge sort](https://en.wikipedia.org/wiki/Merge_sort)
-
-## [Selection sort](https://en.wikipedia.org/wiki/Selection_sort)
-
-## [Bubble sort](https://en.wikipedia.org/wiki/Bubble_sort)
-
-## [Insertion sort](https://en.wikipedia.org/wiki/Insertion_sort)
-
-## [Shellsort](https://en.wikipedia.org/wiki/Shellsort)
-
-## [Quick sort](https://en.wikipedia.org/wiki/Quicksort)
-
-## [Heap sort](https://en.wikipedia.org/wiki/Heapsort)
-
-## [Radix sort](https://en.wikipedia.org/wiki/Radix_sort)
-
-## [Counting sort](https://en.wikipedia.org/wiki/Counting_sort)
+- [Merge sort](https://en.wikipedia.org/wiki/Merge_sort)
+- [Selection sort](https://en.wikipedia.org/wiki/Selection_sort)
+- [Bubble sort](https://en.wikipedia.org/wiki/Bubble_sort)
+- [Insertion sort](https://en.wikipedia.org/wiki/Insertion_sort)
+- [Shellsort](https://en.wikipedia.org/wiki/Shellsort)
+- [Quick sort](https://en.wikipedia.org/wiki/Quicksort)
+- [Heap sort](https://en.wikipedia.org/wiki/Heapsort)
+- [Radix sort](https://en.wikipedia.org/wiki/Radix_sort)
+- [Counting sort](https://en.wikipedia.org/wiki/Counting_sort)
 
 ---
 
@@ -165,6 +157,7 @@ An improved version of sequential navigation as a method of placing frequently u
 - Binary Search  
 It is a method of exploring sorted datasets by bifurcating them to two  
 Time complexity: O(log n)  
+
 [Binary Search Tree](https://en.wikipedia.org/wiki/Binary_search_tree)
 
 ---
@@ -207,3 +200,11 @@ The difference between Dynamic programming and Divide and conquer algorithm
 - [Spanning tree](https://en.wikipedia.org/wiki/Spanning_tree)
 - [Prim's algorithm](https://en.wikipedia.org/wiki/Prim%27s_algorithm)
 - [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm)
+
+---
+
+# [Topological sorting](https://en.wikipedia.org/wiki/Topological_sorting)
+
+- [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
+- [Bellman-Ford algorithm](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm)
+- [Greedy algorithm](https://en.wikipedia.org/wiki/Greedy_algorithm)
