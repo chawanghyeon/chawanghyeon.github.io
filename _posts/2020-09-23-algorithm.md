@@ -164,7 +164,7 @@ An improved version of sequential navigation as a method of placing frequently u
 It is a method of exploring sorted datasets by bifurcating them to two  
 Time complexity: O(log n)  
 
-## Tree
+## [Tree](https://en.wikipedia.org/wiki/Tree_(data_structure))
 - [Binary Search Tree](https://en.wikipedia.org/wiki/Binary_search_tree)
 - [Red-black tree](https://en.wikipedia.org/wiki/Red%E2%80%93black_tree)
 - [B-tree](https://en.wikipedia.org/wiki/B-tree)
@@ -186,7 +186,7 @@ The difference between Dynamic programming and Divide and conquer algorithm
 - Divide and conquer algorithm solves monopolistic problems
 - Dynamic programming solves dependent problems
 
-## [Graph](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)
+## [Graph](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics))
 - [Eulerian path](https://en.wikipedia.org/wiki/Eulerian_path)
 - [Hamiltonian path](https://en.wikipedia.org/wiki/Hamiltonian_path)
 - [Tree](https://en.wikipedia.org/wiki/Tree_(data_structure))
