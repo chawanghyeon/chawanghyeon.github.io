@@ -147,12 +147,12 @@ A storage unit that contains all the information collected for an object.
 Each information in the record
 - Key  
 It's a representative field.
-- Search Tree  
+- [Search Tree](https://en.wikipedia.org/wiki/Search_tree)
 Each node has one key to match the rules.  
 The key tells you where the record is stored.
-- Linear Search  
+- [Linear Search](https://en.wikipedia.org/wiki/Linear_search)
 It is a method of comparing and finding in order.
-- Self-Organizing Sequential Search  
+- [Self-Organizing Sequential Search](https://en.wikipedia.org/wiki/Self-organizing_list)
 An improved version of sequential navigation as a method of placing frequently used data forward.
    - Move to front  
    Once a data searched, the data is sent to the very front.
@@ -160,7 +160,7 @@ An improved version of sequential navigation as a method of placing frequently u
    Once a data searched, the data is sent to the right before.
    - Frequency count  
    Stores the number of times searched and organizes the data in the order in which the number of times searched is high.
-- Binary Search  
+- [Binary Search](https://en.wikipedia.org/wiki/Binary_search_algorithm)
 It is a method of exploring sorted datasets by bifurcating them to two  
 Time complexity: O(log n)  
 
@@ -186,8 +186,13 @@ The difference between Dynamic programming and Divide and conquer algorithm
 - Divide and conquer algorithm solves monopolistic problems
 - Dynamic programming solves dependent problems
 
-## [Tree traversal](https://en.wikipedia.org/wiki/Tree_traversal)
+## [Graph](https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)
+- [Eulerian path](https://en.wikipedia.org/wiki/Eulerian_path)
+- [Hamiltonian path](https://en.wikipedia.org/wiki/Hamiltonian_path)
+- [Tree](https://en.wikipedia.org/wiki/Tree_(data_structure))
 
+## [Tree traversal](https://en.wikipedia.org/wiki/Tree_traversal)
+- [Graph traversal](https://en.wikipedia.org/wiki/Graph_traversal)
 - [Depth first search](https://en.wikipedia.org/wiki/Depth-first_search)
 - [Breadth first search](https://en.wikipedia.org/wiki/Breadth-first_search)
 - [Spanning tree](https://en.wikipedia.org/wiki/Spanning_tree)
@@ -195,7 +200,15 @@ The difference between Dynamic programming and Divide and conquer algorithm
 - [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm)
 
 ## [Topological sorting](https://en.wikipedia.org/wiki/Topological_sorting)
-
+- [Directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 - [Dijkstra algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
+- [Floyd-Warshall algorithm](https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm)
 - [Bellman-Ford algorithm](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm)
 - [Greedy algorithm](https://en.wikipedia.org/wiki/Greedy_algorithm)
+
+## [String searching algorithm](https://en.wikipedia.org/wiki/String-searching_algorithm)
+- [Finite automata algorithm for pattern searching](https://www.geeksforgeeks.org/finite-automata-algorithm-for-pattern-searching/)
+- [Rabin-Karp algorithm](https://en.wikipedia.org/wiki/Rabin%E2%80%93Karp_algorithm)
+- [KMP algorithm](https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm)
+
+# [More algorithms](https://www.geeksforgeeks.org/)
