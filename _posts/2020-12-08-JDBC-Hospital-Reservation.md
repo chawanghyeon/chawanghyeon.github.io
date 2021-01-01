@@ -9,6 +9,10 @@ categories: [projects]
 
 # [JDBC-Hospital-Reservation](https://github.com/chawanghyeon/JDBC-Hospital-Reservation)
 
+<details>
+<summary>Korean</summary>
+<div markdown="1">
+
 - 프로젝트 주제
 
     병원 예약 시스템
@@ -152,5 +156,147 @@ Controller.java, service
 - 마지막으로 화면을 공유해서 다같이 코드리뷰를 진행했습니다.
 
     (다 같이)
+</div>
+</details>
+</div>
+</details>
+
+<details>
+<summary>English</summary>
+<div markdown="1">
+
+# JDBC Project
+
+- Project topic
+
+    Hospital reservation
+
+- The process of setting topic
+
+    we had focused more on JDBC structure and review and has brought practical data structures used in the medical community.
+
+<details>
+<summary>Project design</summary>
+<div markdown="1">
+
+Topic : Hospital reservation
+
+1. The application of MVC and DAO and DTO
+
+    ![DI](https://user-images.githubusercontent.com/53591258/103432830-be98ff00-4c29-11eb-8400-19a94d447b53.jpg)
+
+    ![JDBC_SQL_DB](https://user-images.githubusercontent.com/53591258/103432835-ed16da00-4c29-11eb-9fe0-489915c6e209.jpg)
+
+
+2. Using table : custodian, information recipient, patient, problem 
+3. Service logic
+    1. Search all patients
+    2. Search only one patient information with the patient reservation number (including care and information)
+    3. Create
+    4. Update
+    5. Delete
+4. Structure of class
+CustodianDTO.java  
+CustodianDAO.java  
+InformationRecipientDTO.java  
+InformationRecipientDAO.java  
+ProblemDTO.java  
+ProblemDAO.java  
+PatientDTO.java  
+PatientDAO.java  
+StartView.java  
+EndView.java  
+Controller.java, service  
+
+</div>
+</details>
+
+<details>
+<summary>Project Scenario</summary>
+<div markdown="1">
+
+Patients search and book hospitals and doctors, check patient ID information, print out diagnostic details, and plan after next hospital connection
+
+1. Search by Patient ID
+2. Search all medical institutions
+3. Search all doctors
+4. Select a specific doctor to schedule
+5. Verify information of reservation with Patient ID
+6. Output Diagnostic History
+
+</div>
+</details>
+
+<details>
+<summary>Project Roadmap</summary>
+<div markdown="1">
+
+![image](https://user-images.githubusercontent.com/53591258/103432879-775f3e00-4c2a-11eb-8a3b-f571c05dfe8c.png)
+</div>
+</details>
+
+<details>
+<summary>Log data</summary>
+<div markdown="1">
+
+![Untitled](https://user-images.githubusercontent.com/53591258/103432913-1dab4380-4c2b-11eb-9e07-9af6c18e128c.png)
+
+1. Leaving the log of the hospital reservation system as data provides the following information
+    1. Which hospital do people go to a lot
+    2. Which doctor do people select a lot?
+    3. What kind of medical treatment did people come to the hospital for?
+    4. What time zone do patients prefer?
+    5. What kind of local people are coming?
+    6. And so on 
+
+</div>
+</details>
+
+<details>
+<summary>Happening</summary>
+<div markdown="1">
+
+# Happening
+
+- Change from existing data to the data needed for our team project and change the table-to-table relationship structure
+    - We know the importance of the primary key setting and unique values in each data table.
+
+- When creating an SQL entry, use the function in the spreadsheet to create it quickly.
+
+- There was a compatibility problem because the Java development environment was different.
+
+    - the resource is not on the build path of a Java project. The error message appears.
+        - We fixed the Java version and solved it.
+
+- There was a problem with the JDBC driver. We solved the problem by copying the driver to the Java path.
+
+- git Happening
+    - At the same time,  we modified the same class and got a git pull, and the conflict occurred so we forced the pull. I felt that I should divide the code that I will develop into class from now on.
+
+    - There was a problem in the process of merging the master branch into the main.
+        ```
+        git branch -M main 
+
+        git push origin main // problem occured
+
+        //So
+        git push origin main --force
+        ```
+
+    - When git pull "The following untracked working tree files would be overwritten by merge:" occured. An error occurred because the files in the remote storage were not tracked locally.
+        ```
+        git fetch —all
+
+        git reset —hard origin/main
+
+        git pull origin main로 해결했습니다.
+        ```
+        ![___](https://user-images.githubusercontent.com/53591258/103432924-5a773a80-4c2b-11eb-862e-771f8be6e611.png)
+
+- Lastly, we shared the screen and conducted a code review together.
+
+</div>
+</details>
+
 </div>
 </details>
