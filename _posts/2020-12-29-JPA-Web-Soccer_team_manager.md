@@ -10,7 +10,7 @@ categories: [projects]
 # [JPA-Web-Soccer team manager](https://github.com/chawanghyeon/JPA-Web-Soccer_team_manager)
 
 <details>
-<summary>Korean</summary>
+<summary>Korean1</summary>
 <div markdown="1">
 
 # WEB_JPA MINI PROJECT : Control하다
