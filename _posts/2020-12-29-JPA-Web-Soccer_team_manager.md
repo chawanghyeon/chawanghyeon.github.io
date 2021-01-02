@@ -192,6 +192,7 @@ em.remove(em.find(LoginEntity.class, userID));
 context에 저장하지 않고 바로 삭제하려 해서 에러가 발생했습니다.
 </div>
 </details>
+
 </div>
 </details>
 
@@ -288,5 +289,6 @@ em.remove(em.find(LoginEntity.class, userID));
 An error occurred because I tried to delete it right away without saving it in context.
 </div>
 </details>
+
 </div>
 </details>
