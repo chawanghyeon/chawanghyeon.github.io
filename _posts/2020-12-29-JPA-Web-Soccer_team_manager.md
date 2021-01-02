@@ -16,13 +16,13 @@ categories: [projects]
 # WEB_JPA MINI PROJECT : Control하다
 
 
-꿀단지님께 날라온 메일:memo: <br>
-<p><p></p>
+꿀단지님께 날라온 메일:memo:
 
 
-토트넘을 소유하고 있는 00기업이 이번에 유벤투스를 인수하게 되었습니다.<br>
-클라이언트는 한 프로그램을 사용하여 두 기업을 관리하고 싶어합니다.<br>
-두팀을 관리할 있는 프로그램을 만들어주세요.<br>
+토트넘을 소유하고 있는 00기업이 이번에 유벤투스를 인수하게 되었습니다.  
+클라이언트는 한 프로그램을 사용하여 두 기업을 관리하고 싶어합니다.  
+두팀을 관리할 있는 프로그램을 만들어주세요.  
+
 
 [PROTOTYPE LINK](https://ovenapp.io/project/Bw3y8pT5PFoud5JYHMvDrt6okzKgig7T#bavCk)
 
