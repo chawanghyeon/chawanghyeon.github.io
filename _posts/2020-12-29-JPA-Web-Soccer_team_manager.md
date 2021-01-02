@@ -7,4 +7,4 @@ tags: [JPA-Web-Soccer_team_manager]
 categories: [projects]
 ---
 
-# [JPA-Web-Soccer team manager](https://github.com/chawanghyeon/JPA-Web-Soccer_team_manager)
+# [Github](https://github.com/chawanghyeon/JPA-Web-Soccer_team_manager)
