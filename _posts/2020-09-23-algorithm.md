@@ -211,4 +211,4 @@ The difference between Dynamic programming and Divide and conquer algorithm
 - [Rabin-Karp algorithm](https://en.wikipedia.org/wiki/Rabin%E2%80%93Karp_algorithm)
 - [KMP algorithm](https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm)
 
-# [More algorithms](https://www.geeksforgeeks.org/)
+# [More algorithms(geeksforgeeks)](https://www.geeksforgeeks.org/)
