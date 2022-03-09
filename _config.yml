@@ -16,7 +16,7 @@ remote_theme : chawanghyeon/minimal-mistakes
 minimal_mistakes_skin    : "default" # "air", "aqua", "contrast", "dark", "dirt", "neon", "mint", "plum", "sunrise"
 
 # Site Settings
-locale                   : "en-US"
+locale                   : "ko-KR"
 title                    : "Cha Wanghyeon Blog"
 title_separator          : "-"
 subtitle                 : # site tagline that appears below site title in masthead
@@ -283,5 +283,5 @@ defaults:
       author_profile: true
       read_time: true
       comments: true
-      share: true
+      share: false
       related: true
