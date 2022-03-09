@@ -95,7 +95,7 @@ analytics:
 # Site Author
 author:
   name             : "Cha Wanghyeon"
-  avatar           : /assets/images/chawanghyeon.PNG # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
+  avatar           : /assets/images/cha.jpg # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "꾸준한 기록"
   location         : "South Korea"
   email            : "chawanghyeon@gmail.com"
