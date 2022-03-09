@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chawanghyeon.github.io/sitemap.xml
