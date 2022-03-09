@@ -31,7 +31,7 @@ masthead_title           : # overrides the website title displayed in the masthe
 # breadcrumbs            : false # true, false (default)
 words_per_minute         : 200
 comments:
-  provider               : disqus # false (default), "disqus", "discourse", "facebook", "staticman", "staticman_v2", "utterances", "custom"
+  provider               : false #(default), "disqus", "discourse", "facebook", "staticman", "staticman_v2", "utterances", "custom"
   disqus:
     shortname            : chawanghyeon-github-io # https://help.disqus.com/customer/portal/articles/466208-what-s-a-shortname-
   discourse:
@@ -96,13 +96,13 @@ analytics:
 author:
   name             : "Cha Wanghyeon"
   avatar           : /assets/images/chawanghyeon.PNG # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
-  bio              : "I am a happy person."
+  bio              : "꾸준한 기록"
   location         : "South Korea"
-  email            :
+  email            : "chawanghyeon@gmail.com"
   links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
-      url: "chawanghyeon@gmail.com"
+      # url: "chawanghyeon@gmail.com"
     - label: "Website"
       icon: "fas fa-fw fa-link"
       # url: "https://github.com/chawanghyeon"
