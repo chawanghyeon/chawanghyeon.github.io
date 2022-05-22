@@ -3,5 +3,3 @@ main:
     url: /categories/
   - title: "Posts"
     url: /posts/
-  - title: "Search"
-    url: /search/
