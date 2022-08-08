@@ -1,0 +1,152 @@
+---
+title: "백준 단계별로 풀어보기 - 재귀 (Python)"
+date: 2022-08-08
+description: "백준 단계별로 풀어보기 - 재귀 (Python)"
+tags: [algorithm]
+categories: [algorithm]
+---
+
+단계별로 풀어보기의 기본 수학2 파트입니다.  
+이 게시물은 제가 문제를 풀 때 마다 업데이트 할 예정입니다.  
+
+## 소수 찾기 - 1978번
+```python
+n = int(input())
+a = list(map(int, input().split()))
+
+ans = 0
+for i in a:
+    error = 0
+    if i > 1:
+        for j in range(2, i):
+            if i % j == 0:
+                error = 1
+                break
+        if error == 0:
+            ans += 1
+
+print(ans)
+```
+## 소수 - 2581번
+```python
+m = int(input())
+n = int(input())
+a = list(range(m, n + 1))
+
+min_ans = n
+sum_ans = 0
+
+for i in a:
+    error = 0
+    if i > 1:
+        for j in range(2, i):
+            if i % j == 0:
+                error = 1
+                break
+        if error == 0:
+            min_ans = min(min_ans, i)
+            sum_ans += i
+
+if sum_ans == 0:
+    print(-1)
+else:
+    print(sum_ans)
+    print(min_ans)
+```
+## 소인수분해 - 11653번
+```python
+n = int(input())
+
+for i in range(2, int(n ** 0.5) + 1):
+    while n % i == 0:
+        n = n // i
+        print(i)
+
+if n > 1:
+    print(n)
+```
+## 소수 구하기 - 1929번
+```python
+m, n = map(int, input().split())
+a = [False] * (n + 1)
+
+for i in range(2, n + 1):
+    if a[i] == False:
+        for j in range(i * 2, n + 1, i):
+            a[j] = True
+        if m <= i <= n:
+            print(i)
+```
+## 베르트랑 공준 - 4948번
+```python
+def get_prime_array(n : int):
+    if n < 2:
+        return []
+
+    n += 1
+    sieve = [1] * (n // 2)
+
+    for i in range(3, int(n ** 0.5) + 1, 2):
+        if sieve[i // 2] == 1:
+            k = i ** 2
+            for j in range(k // 2, n // 2, i):
+                sieve[j] = 0
+    return sieve
+
+def get_prime_number(a):
+    if type(a) == int:
+        a = get_prime_array(a)
+
+    ans = [2]
+    for i in range(1, len(a)):
+        if a[i] == 1:
+            ans.append(2 * i + 1)
+    return ans
+
+def search(p, n):
+    l, r = 0, len(p) - 1
+
+    while l <= r:
+        m = (l + r) // 2
+
+        if p[m] > n:
+            r = m - 1
+        else:
+            l = m + 1
+
+    return l
+    
+s = get_prime_number(123456 * 2)
+
+while True:
+    n = int(input())
+    if n == 0:
+        break
+
+    print(search(s, n * 2) - search(s, n))
+```
+## 골드바흐의 추측 - 9020번
+```python
+x = [False, False, True] + [True, False] * 5000
+
+for i in range(3, 101, 2):
+    if x[i]:
+        x[i * 2::i] = [False] * len(x[i * 2::i])
+
+for _ in range(int(input())):
+    a = int(input())
+    
+    if a == 4:
+        print(2, 2)
+        continue
+    
+    half_a = a // 2
+    
+    if half_a % 2 == 0:
+        half_a += 1
+        
+    for i in range(half_a, a, 2):
+        if x[i] and x[a - i]:
+            print(a - i, i)
+            break
+```
