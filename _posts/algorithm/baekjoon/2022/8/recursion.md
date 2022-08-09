@@ -6,147 +6,90 @@ tags: [algorithm]
 categories: [algorithm]
 ---
 
-단계별로 풀어보기의 기본 수학2 파트입니다.  
+단계별로 풀어보기의 재귀 파트입니다.  
 이 게시물은 제가 문제를 풀 때 마다 업데이트 할 예정입니다.  
 
-## 소수 찾기 - 1978번
+## 팩토리얼 - 10872번
 ```python
+import sys
+x = int(sys.stdin.readline())
+
+def factorial(n):
+    if n == 0 or n == 1:
+        return 1
+    return  n * factorial(n - 1)
+
+print(factorial(x))
+```
+## 피보나치 수 5 - 10870번
+```python
+import sys
+x = int(sys.stdin.readline())
+
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return  fibonacci(n - 1) + fibonacci(n - 2)
+
+print(fibonacci(x))
+```
+## 재귀함수가 뭔가요? - 17478번
+```python
+def recursive(m):
+    print("_" * (4 * (n - m)) + '"재귀함수가 뭔가요?"')
+
+    if not m:
+        print("_" * (4 * (n - m)) + '"재귀함수는 자기 자신을 호출하는 함수라네"')
+        print("_" * (4 * (n - m)) + "라고 답변하였지.")
+        return
+
+    print("_" * (4 * (n - m)) + '"잘 들어보게. 옛날옛날 한 산 꼭대기에 이세상 모든 지식을 통달한 선인이 있었어.')
+    print("_" * (4 * (n - m)) + "마을 사람들은 모두 그 선인에게 수많은 질문을 했고, 모두 지혜롭게 대답해 주었지.")
+    print("_" * (4 * (n - m)) + '그의 답은 대부분 옳았다고 하네. 그런데 어느 날, 그 선인에게 한 선비가 찾아와서 물었어."')
+    recursive(m - 1)
+    print("_" * (4 * (n - m)) + "라고 답변하였지.")
+
+
 n = int(input())
-a = list(map(int, input().split()))
-
-ans = 0
-for i in a:
-    error = 0
-    if i > 1:
-        for j in range(2, i):
-            if i % j == 0:
-                error = 1
-                break
-        if error == 0:
-            ans += 1
-
-print(ans)
+print("어느 한 컴퓨터공학과 학생이 유명한 교수님을 찾아가 물었다.")
+recursive(n)
 ```
-## 소수 - 2581번
+## 별 찍기 - 10 - 2447번
 ```python
-m = int(input())
-n = int(input())
-a = list(range(m, n + 1))
+import sys
+sys.setrecursionlimit(10**6)
 
-min_ans = n
-sum_ans = 0
+def append_star(LEN):
+    if LEN == 1:
+        return ['*']
 
-for i in a:
-    error = 0
-    if i > 1:
-        for j in range(2, i):
-            if i % j == 0:
-                error = 1
-                break
-        if error == 0:
-            min_ans = min(min_ans, i)
-            sum_ans += i
+    Stars = append_star(LEN//3)
+    L = []
+    for S in Stars:
+        L.append(S*3)
+    for S in Stars:
+        L.append(S+' '*(LEN//3)+S)
+    for S in Stars:
+        L.append(S*3)
+    return L
 
-if sum_ans == 0:
-    print(-1)
-else:
-    print(sum_ans)
-    print(min_ans)
+n = int(sys.stdin.readline().strip())
+print('\n'.join(append_star(n)))
 ```
-## 소인수분해 - 11653번
+## 하노이 탑 이동 순서 - 11729번
 ```python
-n = int(input())
+import sys
 
-for i in range(2, int(n ** 0.5) + 1):
-    while n % i == 0:
-        n = n // i
-        print(i)
-
-if n > 1:
-    print(n)
-```
-## 소수 구하기 - 1929번
-```python
-m, n = map(int, input().split())
-a = [False] * (n + 1)
-
-for i in range(2, n + 1):
-    if a[i] == False:
-        for j in range(i * 2, n + 1, i):
-            a[j] = True
-        if m <= i <= n:
-            print(i)
-```
-## 베르트랑 공준 - 4948번
-```python
-def get_prime_array(n : int):
-    if n < 2:
-        return []
-
-    n += 1
-    sieve = [1] * (n // 2)
-
-    for i in range(3, int(n ** 0.5) + 1, 2):
-        if sieve[i // 2] == 1:
-            k = i ** 2
-            for j in range(k // 2, n // 2, i):
-                sieve[j] = 0
-    return sieve
-
-def get_prime_number(a):
-    if type(a) == int:
-        a = get_prime_array(a)
-
-    ans = [2]
-    for i in range(1, len(a)):
-        if a[i] == 1:
-            ans.append(2 * i + 1)
-    return ans
-
-def search(p, n):
-    l, r = 0, len(p) - 1
-
-    while l <= r:
-        m = (l + r) // 2
-
-        if p[m] > n:
-            r = m - 1
-        else:
-            l = m + 1
-
-    return l
+def hanoi(n, start, end) :
+    if n == 1 :
+        print(start, end)
+        return
+       
+    hanoi(n - 1, start, 6 - start - end)
+    print(start, end)
+    hanoi(n - 1, 6 - start - end, end)
     
-s = get_prime_number(123456 * 2)
-
-while True:
-    n = int(input())
-    if n == 0:
-        break
-
-    print(search(s, n * 2) - search(s, n))
-```
-## 골드바흐의 추측 - 9020번
-```python
-x = [False, False, True] + [True, False] * 5000
-
-for i in range(3, 101, 2):
-    if x[i]:
-        x[i * 2::i] = [False] * len(x[i * 2::i])
-
-for _ in range(int(input())):
-    a = int(input())
-    
-    if a == 4:
-        print(2, 2)
-        continue
-    
-    half_a = a // 2
-    
-    if half_a % 2 == 0:
-        half_a += 1
-        
-    for i in range(half_a, a, 2):
-        if x[i] and x[a - i]:
-            print(a - i, i)
-            break
+n = int(sys.stdin.readline())
+print(2 ** n - 1)
+hanoi(n, 1, 3)
 ```
