@@ -32,6 +32,37 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
   onToggleStepCollapse,
   onToggleOptionCollapse
 }) => {
+  // 새로 생성된 step/option에 포커스
+
+  // Focus state
+  const [focusStepId, setFocusStepId] = React.useState<string | null>(null);
+  const [focusOption, setFocusOption] = React.useState<{stepId: string, optionId: string} | null>(null);
+
+  // Ref maps for step/option inputs
+  const stepInputRefs = React.useRef<{ [stepId: string]: HTMLInputElement | null }>({});
+  const optionInputRefs = React.useRef<{ [key: string]: HTMLInputElement | null }>({}); // key: `${stepId}_${optionId}`
+
+  // Focus effect for step
+  React.useEffect(() => {
+    if (focusStepId && stepInputRefs.current[focusStepId]) {
+      stepInputRefs.current[focusStepId]?.focus();
+      stepInputRefs.current[focusStepId]?.select();
+      setFocusStepId(null);
+    }
+  }, [focusStepId, steps]);
+
+  // Focus effect for option
+  React.useEffect(() => {
+    if (focusOption) {
+      const key = `${focusOption.stepId}_${focusOption.optionId}`;
+      if (optionInputRefs.current[key]) {
+        optionInputRefs.current[key]?.focus();
+        optionInputRefs.current[key]?.select();
+        setFocusOption(null);
+      }
+    }
+  }, [focusOption, steps]);
+
   // visited set을 사용해 무한 재귀 방지
   const renderStepNode = (
     stepId: string,
@@ -74,7 +105,12 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
             <div className="step-actions">
               <button
                 type="button"
-                onClick={() => onAddOption(stepId)}
+                onClick={() => {
+                  const optionNumber = step.options.length + 1;
+                  const newOptionId = `${stepId}_option_${optionNumber}`;
+                  onAddOption(stepId);
+                  setTimeout(() => setFocusOption({stepId, optionId: newOptionId}), 0);
+                }}
                 className="btn-secondary btn-small"
                 title="선택지 추가"
               >
@@ -91,19 +127,20 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
             </div>
           </div>
           <div className="step-content">
-            <input
-              type="text"
-              className={`step-input ${step.isActive ? '' : 'disabled'}`}
-              value={step.displayName}
-              onChange={(e) => onUpdateStepName(stepId, e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && step.isActive && step.parentStepId && step.parentOptionId) {
-                  onAddNextStep(step.parentStepId, step.parentOptionId);
-                }
-              }}
-              placeholder="단계 이름을 입력하세요"
-              disabled={!step.isActive}
-            />
+              <input
+                type="text"
+                className={`step-input ${step.isActive ? '' : 'disabled'}`}
+                value={step.displayName}
+                ref={el => { stepInputRefs.current[stepId] = el; }}
+                onChange={(e) => onUpdateStepName(stepId, e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && step.isActive) {
+                    onAddNextStep(step.parentStepId ?? '', step.parentOptionId ?? '');
+                  }
+                }}
+                placeholder="단계 이름을 입력하세요"
+                disabled={!step.isActive}
+              />
           </div>
         </div>
 
@@ -140,7 +177,11 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
                     <div className="option-actions">
                       <button
                         type="button"
-                        onClick={() => onAddNextStep(stepId, option.id)}
+                        onClick={() => {
+                          onAddNextStep(stepId, option.id);
+                          const newStepId = `step_${Date.now()}`;
+                          setTimeout(() => setFocusStepId(newStepId), 0);
+                        }}
                         className="btn-secondary btn-small"
                         title="다음 단계 추가"
                       >
@@ -159,19 +200,23 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
                     </div>
                   </div>
                   <div className="option-content">
-                    <input
-                      type="text"
-                      className={`option-input ${option.isActive ? '' : 'disabled'}`}
-                      value={option.displayName}
-                      onChange={(e) => onUpdateOptionName(stepId, option.id, e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && option.isActive) {
-                          onAddOption(stepId);
-                        }
-                      }}
-                      placeholder="선택지 이름을 입력하세요"
-                      disabled={!option.isActive}
-                    />
+                      <input
+                        type="text"
+                        className={`option-input ${option.isActive ? '' : 'disabled'}`}
+                        value={option.displayName}
+                        ref={el => { optionInputRefs.current[`${stepId}_${option.id}`] = el; }}
+                        onChange={(e) => onUpdateOptionName(stepId, option.id, e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && option.isActive) {
+                            const optionNumber = step.options.length + 1;
+                            const newOptionId = `${stepId}_option_${optionNumber}`;
+                            onAddOption(stepId);
+                            setTimeout(() => setFocusOption({stepId, optionId: newOptionId}), 0);
+                          }
+                        }}
+                        placeholder="선택지 이름을 입력하세요"
+                        disabled={!option.isActive}
+                      />
                   </div>
                 </div>
 
@@ -194,9 +239,9 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
       <div className="toolbar">
         <button 
           onClick={() => {
-            console.log('🔴 Button clicked!')
-            onAddRootStep()
-            console.log('🔴 onAddRootStep called!')
+            const newStepId = `step_${Date.now()}`;
+            onAddRootStep();
+            setTimeout(() => setFocusStepId(newStepId), 0);
           }} 
           className="primary-btn"
         >
