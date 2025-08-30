@@ -3,31 +3,25 @@ import Head from 'next/head'
 import { useStepManager } from '../hooks/useStepManager'
 import AppHeader from '../components/AppHeader'
 import WorkflowDesignTab from '../components/WorkflowDesignTab'
-import TreeVisualizationTab from '../components/TreeVisualizationTab'
 import TableVisualizationTab from '../components/TableVisualizationTab'
 import DataManagementTab from '../components/DataTab'
 
 const HomePage: React.FC = () => {
   const {
     steps,
-    rootSteps,
-    stepCounter,
+    optionActivations,
+    pathActivations,
     currentTab,
     addRootStep,
-    addNextStep,
     updateStepName,
     updateOptionName,
     deleteStep,
     addOption,
     deleteOption,
-    toggleStepActive,
     toggleOptionActive,
-    toggleStepCollapse,
-    toggleOptionCollapse,
-    exportToJSON,
-    importFromJSON,
-    clearAllData,
-    switchTab
+    toggleOptionNextStepActive,
+    setCurrentTab: switchTab,
+    addStepAtIndex
   } = useStepManager()
 
   // Add keyboard shortcut for adding root step
@@ -48,42 +42,29 @@ const HomePage: React.FC = () => {
         return (
           <WorkflowDesignTab
             steps={steps}
-            rootSteps={rootSteps}
+            optionActivations={optionActivations}
+            pathActivations={pathActivations}
             onAddRootStep={addRootStep}
-            onAddNextStep={addNextStep}
             onUpdateStepName={updateStepName}
             onUpdateOptionName={updateOptionName}
             onDeleteStep={deleteStep}
             onAddOption={addOption}
             onDeleteOption={deleteOption}
-            onToggleStepActive={toggleStepActive}
             onToggleOptionActive={toggleOptionActive}
-            onToggleStepCollapse={toggleStepCollapse}
-            onToggleOptionCollapse={toggleOptionCollapse}
-          />
-        )
-      case 'visualization':
-        return (
-          <TreeVisualizationTab
-            steps={steps}
-            rootSteps={rootSteps}
+            onToggleOptionNextStepActive={toggleOptionNextStepActive}
+            onAddStepAtIndex={addStepAtIndex}
           />
         )
       case 'table':
         return (
           <TableVisualizationTab
             steps={steps}
-            rootSteps={rootSteps}
           />
         )
       case 'data':
         return (
           <DataManagementTab
             steps={steps}
-            rootSteps={rootSteps}
-            onExportToJSON={exportToJSON}
-            onImportFromJSON={importFromJSON}
-            onClearAllData={clearAllData}
           />
         )
       default:
