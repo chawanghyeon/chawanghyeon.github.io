@@ -59,6 +59,7 @@ const HomePage: React.FC = () => {
         return (
           <TableVisualizationTab
             steps={steps}
+            pathActivations={pathActivations}
           />
         )
       case 'data':

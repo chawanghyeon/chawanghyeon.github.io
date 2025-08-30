@@ -67,6 +67,13 @@
 .excel-table .inactive-row td{ opacity:0.5 }
 .excel-table .inactive-cell{ color:var(--muted) }
 
+/* Inactive cells: visually muted + strikethrough to indicate disabled/removed options */
+.excel-table .inactive-cell .cell-inner{
+	text-decoration: line-through;
+	text-decoration-thickness: 2px;
+	text-decoration-color: rgba(0,0,0,0.15);
+}
+
 @media (max-width:720px){
 	.excel-table-container{ min-width:560px }
 }
