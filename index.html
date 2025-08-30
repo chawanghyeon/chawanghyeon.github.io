@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>워크플로우 관리 시스템</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 헤더 -->
+        <header class="app-header">
+            <h1>🌳 워크플로우 관리 시스템</h1>
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="design">📋 워크플로우 설계</button>
+                <button class="tab-btn" data-tab="visualization">🎯 트리 시각화</button>
+                <button class="tab-btn" data-tab="table">📊 표 시각화</button>
+                <button class="tab-btn" data-tab="data">💾 데이터 관리</button>
+            </div>
+        </header>
+
+        <!-- 워크플로우 설계 탭 -->
+        <div class="tab-content active" id="design-tab">
+            <div class="design-container">
+                <div class="toolbar">
+                    <button id="addStepBtn" class="primary-btn">
+                        <span class="btn-icon">�</span>
+                        <span class="btn-text">첫 번째 단계 추가하기</span>
+                    </button>
+                    <div class="save-status" id="saveStatus"></div>
+                </div>
+                
+                <div class="workflow-canvas" id="stepsContainer">
+                    <!-- 워크플로우 단계들이 여기에 렌더링됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 트리 시각화 탭 -->
+        <div class="tab-content" id="visualization-tab">
+            <div class="visualization-container">
+                <h2>🎯 트리 시각화</h2>
+                <div id="treeVisualization"></div>
+            </div>
+        </div>
+
+        <!-- 표 시각화 탭 -->
+        <div class="tab-content" id="table-tab">
+            <div class="table-container">
+                <h2>📊 표 시각화</h2>
+                <div id="tableVisualization"></div>
+            </div>
+        </div>
+
+        <!-- 데이터 관리 탭 -->
+        <div class="tab-content" id="data-tab">
+            <div class="data-container">
+                <h2>💾 데이터 관리</h2>
+                <div class="data-controls">
+                    <button type="button" class="export-btn" onclick="stepManager.exportToJSON()">
+                        📥 JSON으로 내보내기
+                    </button>
+                    <label class="import-btn">
+                        📤 JSON 가져오기
+                        <input type="file" id="importFile" accept=".json" style="display: none;">
+                    </label>
+                    <button type="button" class="clear-btn" onclick="stepManager.clearAllData()">
+                        🗑️ 모든 데이터 삭제
+                    </button>
+                </div>
+                <div class="data-info">
+                    <h3>저장된 데이터 정보</h3>
+                    <div id="dataInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
