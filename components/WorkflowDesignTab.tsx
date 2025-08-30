@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Step, StepOption } from '../hooks/useStepManager'
 
@@ -98,7 +97,7 @@ const WorkflowDesignTab: React.FC<WorkflowDesignTabProps> = ({
               value={step.displayName}
               onChange={(e) => onUpdateStepName(stepId, e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Enter' && step.isActive) {
+                if (e.key === 'Enter' && step.isActive && step.parentStepId && step.parentOptionId) {
                   onAddNextStep(step.parentStepId, step.parentOptionId);
                 }
               }}

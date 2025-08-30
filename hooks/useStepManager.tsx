@@ -116,7 +116,7 @@ export const useStepManager = () => {
       const savedData = localStorage.getItem(storageKey)
       if (savedData) {
         const data = JSON.parse(savedData)
-        const stepsMap = {}
+        const stepsMap: Record<string, Step> = {};
         
         if (data.steps) {
           Object.entries(data.steps).forEach(([key, value]) => {
@@ -572,7 +572,8 @@ export const useStepManager = () => {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string)
-        const stepsMap = {}
+        const stepsMap: Record<string, Step> = {};
+
         
         if (data.steps) {
           Object.entries(data.steps).forEach(([key, value]) => {
