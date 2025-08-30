@@ -229,7 +229,7 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
               minWidth: 110,
             }}
           >
-            경로 전체
+            {allCombinations.length} rows
           </th>
           {steps.map((step, idx) => (
             <th
@@ -261,10 +261,16 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                       aria-haspopup="true"
                       aria-expanded={openHeader === idx}
                       onClick={(e) => {
-                        e.stopPropagation()
-                        const newOpen = openHeader === idx ? null : idx
-                        setOpenHeader(newOpen)
-                        setHeaderAnchorRect(newOpen === null ? null : (e.currentTarget as HTMLElement).getBoundingClientRect())
+                        e.stopPropagation();
+                        const newOpen = openHeader === idx ? null : idx;
+                        setOpenHeader(newOpen);
+                        setHeaderAnchorRect(
+                          newOpen === null
+                            ? null
+                            : (
+                                e.currentTarget as HTMLElement
+                              ).getBoundingClientRect()
+                        );
                       }}
                       title="단계 메뉴"
                     >
@@ -272,11 +278,40 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                     </button>
                     {openHeader === idx && headerAnchorRect && (
                       <MenuPortal anchorRect={headerAnchorRect}>
-                        <div className="header-menu" role="menu" onClick={(e) => e.stopPropagation()}>
-                          <button className="cell-menu-item" onClick={() => onAddOption(step.id)}>선택지 추가</button>
-                          <button className="cell-menu-item" onClick={() => handleStepToggleAll(idx, !isStepAllActive(idx))}>{isStepAllActive(idx) ? '전체 비활성화' : '전체 활성화'}</button>
-                          <button className="cell-menu-item" onClick={() => onDeleteStep(step.id)} disabled={steps.length === 1}>현재 단계 삭제</button>
-                          <button className="cell-menu-item" onClick={() => onAddStepAtIndex(idx)}>오른쪽에 단계 추가</button>
+                        <div
+                          className="header-menu"
+                          role="menu"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="cell-menu-item"
+                            onClick={() => onAddOption(step.id)}
+                          >
+                            선택지 추가
+                          </button>
+                          <button
+                            className="cell-menu-item"
+                            onClick={() =>
+                              handleStepToggleAll(idx, !isStepAllActive(idx))
+                            }
+                          >
+                            {isStepAllActive(idx)
+                              ? "전체 비활성화"
+                              : "전체 활성화"}
+                          </button>
+                          <button
+                            className="cell-menu-item"
+                            onClick={() => onDeleteStep(step.id)}
+                            disabled={steps.length === 1}
+                          >
+                            현재 단계 삭제
+                          </button>
+                          <button
+                            className="cell-menu-item"
+                            onClick={() => onAddStepAtIndex(idx)}
+                          >
+                            오른쪽에 단계 추가
+                          </button>
                         </div>
                       </MenuPortal>
                     )}
@@ -318,7 +353,9 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                       : "이 경로 전체 활성화"
                   }
                 >
-                  {isRowAllActive ? "경로 전체 비활성화" : "경로 전체 활성화"}
+                  {isRowAllActive
+                    ? `${rowIdx + 1} 비활성화`
+                    : `${rowIdx + 1} 활성화`}
                 </button>
               </td>
               {row.map((option, colIdx) => {
@@ -457,11 +494,22 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                             hoveredCell?.colIdx === colIdx
                           }
                           onClick={(e) => {
-                            e.stopPropagation()
-                            const alreadyOpen = hoveredCell && hoveredCell.pathKey === pathKey && hoveredCell.colIdx === colIdx
-                            const newHover = alreadyOpen ? null : { pathKey, colIdx }
-                            setHoveredCell(newHover)
-                            setCellAnchorRect(newHover ? (e.currentTarget as HTMLElement).getBoundingClientRect() : null)
+                            e.stopPropagation();
+                            const alreadyOpen =
+                              hoveredCell &&
+                              hoveredCell.pathKey === pathKey &&
+                              hoveredCell.colIdx === colIdx;
+                            const newHover = alreadyOpen
+                              ? null
+                              : { pathKey, colIdx };
+                            setHoveredCell(newHover);
+                            setCellAnchorRect(
+                              newHover
+                                ? (
+                                    e.currentTarget as HTMLElement
+                                  ).getBoundingClientRect()
+                                : null
+                            );
                           }}
                           title="셀 메뉴"
                         >
@@ -469,16 +517,48 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                         </button>
 
                         {/* Action menu (anchored to caret via portal) */}
-                        {hoveredCell?.pathKey === pathKey && hoveredCell?.colIdx === colIdx && cellAnchorRect && (
-                          <MenuPortal anchorRect={cellAnchorRect}>
-                            <div className="cell-menu" role="menu" onClick={(e) => e.stopPropagation()}>
-                              <button className="cell-menu-item" onClick={() => onDeleteOption(steps[colIdx].id, option.id)}>옵션 삭제</button>
-                              <button className="cell-menu-item" onClick={handleOptionBulkToggle}>{isOptionAllActive ? '옵션 전체 비활성화' : '옵션 전체 활성화'}</button>
-                              <button className="cell-menu-item" onClick={handlePrevOptionBulkToggle} disabled={colIdx === 0}>이전 옵션 기준 전체 토글</button>
-                              <button className="cell-menu-item" onClick={handleNextOptionBulkToggle} disabled={colIdx === steps.length - 1}>다음 옵션 기준 전체 토글</button>
-                            </div>
-                          </MenuPortal>
-                        )}
+                        {hoveredCell?.pathKey === pathKey &&
+                          hoveredCell?.colIdx === colIdx &&
+                          cellAnchorRect && (
+                            <MenuPortal anchorRect={cellAnchorRect}>
+                              <div
+                                className="cell-menu"
+                                role="menu"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  className="cell-menu-item"
+                                  onClick={() =>
+                                    onDeleteOption(steps[colIdx].id, option.id)
+                                  }
+                                >
+                                  옵션 삭제
+                                </button>
+                                <button
+                                  className="cell-menu-item"
+                                  onClick={handleOptionBulkToggle}
+                                >
+                                  {isOptionAllActive
+                                    ? "옵션 전체 비활성화"
+                                    : "옵션 전체 활성화"}
+                                </button>
+                                <button
+                                  className="cell-menu-item"
+                                  onClick={handlePrevOptionBulkToggle}
+                                  disabled={colIdx === 0}
+                                >
+                                  이전 옵션 기준 전체 토글
+                                </button>
+                                <button
+                                  className="cell-menu-item"
+                                  onClick={handleNextOptionBulkToggle}
+                                  disabled={colIdx === steps.length - 1}
+                                >
+                                  다음 옵션 기준 전체 토글
+                                </button>
+                              </div>
+                            </MenuPortal>
+                          )}
                       </span>
                     </div>
                   </td>

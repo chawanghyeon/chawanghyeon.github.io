@@ -54,44 +54,92 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({ steps, pa
           onClick={async () => {
             try {
               // Build HTML table string with inline <s> for strikethrough cells so Excel preserves it
-              const cols = ["#", ...stepNames]
+              const cols = ["#", ...stepNames];
               const buildCell = (text: string, inactive: boolean) => {
-                const safe = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                if (inactive) return `<td style="color: #6b7280;"><s>${safe}</s></td>`
-                return `<td>${safe}</td>`
-              }
+                const safe = String(text)
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+                if (inactive)
+                  return `<td style="color: #6b7280;"><s>${safe}</s></td>`;
+                return `<td>${safe}</td>`;
+              };
 
-              const rowsHtml = allCombinations.map((row, rIdx) => {
-                const idxCell = `<td>${rIdx + 1}</td>`
-                const cells = row.map((option, cIdx) => {
-                  const cellActive = pathActivations && Array.isArray(pathActivations[String(rIdx)])
-                    ? !!pathActivations[String(rIdx)][cIdx]
-                    : !!(steps[cIdx].isActive && option.isActive)
-                  return buildCell(option.displayName || option.name, !cellActive && option.name !== "-")
-                }).join("")
-                return `<tr>${idxCell}${cells}</tr>`
-              }).join("")
+              const rowsHtml = allCombinations
+                .map((row, rIdx) => {
+                  const idxCell = `<td>${rIdx + 1}</td>`;
+                  const cells = row
+                    .map((option, cIdx) => {
+                      const cellActive =
+                        pathActivations &&
+                        Array.isArray(pathActivations[String(rIdx)])
+                          ? !!pathActivations[String(rIdx)][cIdx]
+                          : !!(steps[cIdx].isActive && option.isActive);
+                      return buildCell(
+                        option.displayName || option.name,
+                        !cellActive && option.name !== "-"
+                      );
+                    })
+                    .join("");
+                  return `<tr>${idxCell}${cells}</tr>`;
+                })
+                .join("");
 
-              const html = `<table><thead><tr>${cols.map(c => `<th>${String(c).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table>`
+              const html = `<table><thead><tr>${cols
+                .map(
+                  (c) =>
+                    `<th>${String(c)
+                      .replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")}</th>`
+                )
+                .join("")}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
 
               // Try to write HTML and plain text
               if (navigator.clipboard && (navigator.clipboard as any).write) {
-                const blobHtml = new Blob([html], { type: 'text/html' })
-                const blobText = new Blob([rowsHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()], { type: 'text/plain' })
-                const data = [new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })]
+                const blobHtml = new Blob([html], { type: "text/html" });
+                const blobText = new Blob(
+                  [
+                    rowsHtml
+                      .replace(/<[^>]+>/g, "")
+                      .replace(/\s+/g, " ")
+                      .trim(),
+                  ],
+                  { type: "text/plain" }
+                );
+                const data = [
+                  new ClipboardItem({
+                    "text/html": blobHtml,
+                    "text/plain": blobText,
+                  }),
+                ];
                 // @ts-ignore
-                await (navigator.clipboard as any).write(data)
-              } else if (navigator.clipboard && (navigator.clipboard as any).writeText) {
+                await (navigator.clipboard as any).write(data);
+              } else if (
+                navigator.clipboard &&
+                (navigator.clipboard as any).writeText
+              ) {
                 // fallback to CSV-like plain text
-                const csv = allCombinations.map((row, rIdx) => [String(rIdx + 1), ...row.map(o => o.displayName || o.name)].join('\t')).join('\n')
-                await navigator.clipboard.writeText(csv)
+                const csv = allCombinations
+                  .map((row, rIdx) =>
+                    [
+                      String(rIdx + 1),
+                      ...row.map((o) => o.displayName || o.name),
+                    ].join("\t")
+                  )
+                  .join("\n");
+                await navigator.clipboard.writeText(csv);
               } else {
-                alert('클립보드 복사 기능을 사용할 수 없습니다. 브라우저를 업데이트 해보세요.')
+                alert(
+                  "클립보드 복사 기능을 사용할 수 없습니다. 브라우저를 업데이트 해보세요."
+                );
               }
-              alert('표를 클립보드로 복사했습니다. (HTML 형식, Excel에 붙여넣으면 취소선이 유지됩니다)')
+              alert(
+                "표를 클립보드로 복사했습니다. (HTML 형식, Excel에 붙여넣으면 취소선이 유지됩니다)"
+              );
             } catch (err) {
-              console.error(err)
-              alert('복사에 실패했습니다.')
+              console.error(err);
+              alert("복사에 실패했습니다.");
             }
           }}
         >
@@ -117,7 +165,18 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({ steps, pa
               <table className="excel-table" role="grid">
                 <thead>
                   <tr>
-                    <th className="row-number-header">#</th>
+                    <th
+                      className="row-number-header"
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: 8,
+                        background: "#f8f8f8",
+                        textAlign: "center",
+                        minWidth: 110,
+                      }}
+                    >
+                      {allCombinations.length} rows
+                    </th>
                     {stepNames.map((stepName, idx) => (
                       <th key={idx}>{stepName}</th>
                     ))}
@@ -138,19 +197,25 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({ steps, pa
                         </td>
                         {row.map((option, idx) => {
                           // determine cell active state from pathActivations if available
-                          const cellActive = pathActivations && Array.isArray(pathActivations[String(index)])
-                            ? !!pathActivations[String(index)][idx]
-                            : !!(steps[idx].isActive && option.isActive)
+                          const cellActive =
+                            pathActivations &&
+                            Array.isArray(pathActivations[String(index)])
+                              ? !!pathActivations[String(index)][idx]
+                              : !!(steps[idx].isActive && option.isActive);
                           return (
                             <td
                               key={option.id || idx}
-                              className={!cellActive && option.name !== "-" ? "inactive-cell" : "data-cell"}
+                              className={
+                                !cellActive && option.name !== "-"
+                                  ? "inactive-cell"
+                                  : "data-cell"
+                              }
                             >
                               <div className="cell-inner">
                                 {option.displayName || option.name}
                               </div>
                             </td>
-                          )
+                          );
                         })}
                       </tr>
                     );
