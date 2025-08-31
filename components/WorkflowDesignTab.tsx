@@ -1,27 +1,47 @@
+import React from "react";
+import AutoResizeInput from "./AutoResizeInput";
+import { Step } from "../hooks/useStepManager";
 
-import React from 'react'
-import { Step } from '../hooks/useStepManager'
-
-import { OptionActivationMap, PathActivationMap } from '../hooks/useStepManager'
-import MenuPortal from './MenuPortal'
+import {
+  OptionActivationMap,
+  PathActivationMap,
+} from "../hooks/useStepManager";
+import MenuPortal from "./MenuPortal";
 
 // 표 형태로 모든 경로(조합)를 행으로, 각 단계별 옵션을 열로 렌더링
 type Props = {
-  steps: Step[]
-  optionActivations: OptionActivationMap // This line remains unchanged
-  pathActivations: PathActivationMap
-  onAddRootStep: () => void
-  onUpdateStepName: (stepId: string, name: string) => void
-  onUpdateOptionName: (stepId: string, optionId: string, name: string) => void
-  onDeleteStep: (stepId: string) => void
-  onAddOption: (stepId: string) => void
-  onDeleteOption: (stepId: string, optionId: string) => void
-  onToggleOptionActive: (pathKey: string, stepIdx: number, isActive: boolean) => void
-  onToggleOptionNextStepActive: (stepId: string, optionId: string, isActive: boolean, parentOptionIdx: number) => void
-  onAddStepAtIndex: (stepIdx: number) => void
-}
+  steps: Step[];
+  optionActivations: OptionActivationMap; // This line remains unchanged
+  pathActivations: PathActivationMap;
+  onAddRootStep: () => void;
+  onUpdateStepName: (stepId: string, name: string) => void;
+  onUpdateOptionName: (stepId: string, optionId: string, name: string) => void;
+  onDeleteStep: (stepId: string) => void;
+  onAddOption: (stepId: string) => void;
+  onDeleteOption: (stepId: string, optionId: string) => void;
+  onToggleOptionActive: (
+    pathKey: string,
+    stepIdx: number,
+    isActive: boolean
+  ) => void;
+  onToggleOptionNextStepActive: (
+    stepId: string,
+    optionId: string,
+    isActive: boolean,
+    parentOptionIdx: number
+  ) => void;
+  onAddStepAtIndex: (stepIdx: number) => void;
+};
 
 const WorkflowDesignTab: React.FC<Props> = (props) => {
+  // 단계별 필터 상태: 각 단계별로 선택된 옵션 id (null이면 전체)
+  const [filters, setFilters] = React.useState<(string | null)[]>(
+    props.steps.map(() => null)
+  );
+  // steps 변경 시 필터 초기화
+  React.useEffect(() => {
+    setFilters(props.steps.map(() => null));
+  }, [props.steps]);
   // 조합별 토글 UI 상태
   const [comboSelections, setComboSelections] = React.useState<{
     [stepIdx: number]: string;
@@ -30,7 +50,7 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
   // 조합별 토글 실행 핸들러
   const handleComboToggle = (targetActive: boolean) => {
     if (Object.keys(comboSelections).length === 0) return;
-    const optionArrays = steps.map((step) => step.options);
+    const optionArrays = props.steps.map((step) => step.options);
     function getAllCombinations<T>(arrays: T[][]): T[][] {
       if (arrays.length === 0) return [[]];
       const [first, ...rest] = arrays;
@@ -40,38 +60,90 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
       );
     }
     const allCombinations = getAllCombinations(optionArrays);
-    allCombinations.forEach((row, rowIdx) => {
+    allCombinations.forEach((row: { id: string }[], rowIdx: number) => {
       const match = Object.entries(comboSelections).every(
         ([stepIdx, optionId]) => row[Number(stepIdx)].id === optionId
       );
       if (match) {
         Object.keys(row).forEach((colIdx) => {
-          onToggleOptionActive(String(rowIdx), Number(colIdx), targetActive);
+          props.onToggleOptionActive(
+            String(rowIdx),
+            Number(colIdx),
+            targetActive
+          );
         });
       }
     });
   };
-  const {
-    steps,
-    optionActivations,
-    pathActivations,
-    onAddRootStep,
-    onUpdateStepName,
-    onUpdateOptionName,
-    onDeleteStep,
-    onAddOption,
-    onDeleteOption,
-    onToggleOptionActive,
-    onToggleOptionNextStepActive,
-    onAddStepAtIndex,
-  } = props;
+  // (불필요한 구조분해 props 제거, 필요한 곳에서 props.XXX로 접근)
+  // 필터링 로직: 필터 조건에 맞는 조합만 반환
+  const optionArrays = props.steps.map((step) => step.options);
+  function getAllCombinations<T>(arrays: T[][]): T[][] {
+    if (arrays.length === 0) return [[]];
+    const [first, ...rest] = arrays;
+    const restCombinations = getAllCombinations(rest);
+    return first.flatMap((item) =>
+      restCombinations.map((comb) => [item, ...comb])
+    );
+  }
+  const allCombinations = getAllCombinations(optionArrays);
+  const filteredCombinations = allCombinations.filter((row) =>
+    filters.every((filter, idx) => filter === null || row[idx].id === filter)
+  );
+  // 각 단계별로 경우의 수(유니크 값 개수) 계산 (필터 적용 전 기준)
+  const optionCounts = optionArrays.map((options, stepIdx) => {
+    const countMap: Record<string, number> = {};
+    allCombinations
+      .filter((row) =>
+        filters.every(
+          (filter, idx) =>
+            idx === stepIdx || filter === null || row[idx].id === filter
+        )
+      )
+      .forEach((row) => {
+        const opt = row[stepIdx];
+        countMap[opt.id] = (countMap[opt.id] || 0) + 1;
+      });
+    return countMap;
+  });
+
   return (
     <section className="workflow-design-tab">
+      {/* 단계별 필터 UI */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+        {props.steps.map((step, stepIdx) => (
+          <div key={step.id} style={{ minWidth: 120 }}>
+            <label style={{ fontWeight: 500, fontSize: 13 }}>
+              {step.displayName || step.name}
+            </label>
+            <select
+              style={{ width: "100%", marginTop: 2 }}
+              value={filters[stepIdx] ?? ""}
+              onChange={(e) => {
+                const v = e.target.value || null;
+                setFilters((f) =>
+                  f.map((old, i) =>
+                    i === stepIdx ? (v === "" ? null : v) : old
+                  )
+                );
+              }}
+            >
+              <option value="">전체 ({optionArrays[stepIdx].length})</option>
+              {optionArrays[stepIdx].map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.displayName || opt.name} (
+                  {optionCounts[stepIdx][opt.id] || 0})
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
       <div className="combo-toolbar">
         <div className="combo-toolbar-row">
           <strong className="combo-label">조합별 토글</strong>
           <div className="combo-selects">
-            {steps.map((step, stepIdx) => (
+            {props.steps.map((step, stepIdx) => (
               <div className="combo-item" key={step.id}>
                 <label className="combo-step-label">{stepIdx + 1}단계</label>
                 <select
@@ -86,11 +158,17 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
                   className="combo-select"
                 >
                   <option value="">(선택안함)</option>
-                  {step.options.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.displayName || opt.name}
-                    </option>
-                  ))}
+                  {step.options.map(
+                    (opt: {
+                      id: string;
+                      displayName: string;
+                      name: string;
+                    }) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.displayName || opt.name}
+                      </option>
+                    )
+                  )}
                 </select>
                 <button
                   onClick={() =>
@@ -129,15 +207,16 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
       <div className="tab-content horizontal-tree-root">
         <div className="horizontal-tree-container">
           <WorkflowPathTable
-            steps={steps}
-            pathActivations={pathActivations}
-            onUpdateStepName={onUpdateStepName}
-            onUpdateOptionName={onUpdateOptionName}
-            onAddOption={onAddOption}
-            onDeleteOption={onDeleteOption}
-            onToggleOptionActive={onToggleOptionActive}
-            onDeleteStep={onDeleteStep}
-            onAddStepAtIndex={onAddStepAtIndex}
+            steps={props.steps}
+            pathActivations={props.pathActivations}
+            onUpdateStepName={props.onUpdateStepName}
+            onUpdateOptionName={props.onUpdateOptionName}
+            onAddOption={props.onAddOption}
+            onDeleteOption={props.onDeleteOption}
+            onToggleOptionActive={props.onToggleOptionActive}
+            onDeleteStep={props.onDeleteStep}
+            onAddStepAtIndex={props.onAddStepAtIndex}
+            filteredCombinations={filteredCombinations}
           />
         </div>
       </div>
@@ -145,7 +224,15 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
   );
 };
 
-const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
+type Combination = {
+  id: string;
+  name: string;
+  displayName: string;
+  isActive?: boolean;
+}[];
+const WorkflowPathTable: React.FC<
+  WorkflowPathTableProps & { filteredCombinations?: Combination[] }
+> = ({
   steps,
   pathActivations,
   onUpdateStepName,
@@ -155,26 +242,27 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
   onToggleOptionActive,
   onDeleteStep,
   onAddStepAtIndex,
+  filteredCombinations,
 }) => {
   const [hoveredCell, setHoveredCell] = React.useState<{
     pathKey: string;
     colIdx: number;
   } | null>(null);
-  const [cellAnchorRect, setCellAnchorRect] = React.useState<DOMRect | null>(null)
+  const [cellAnchorRect, setCellAnchorRect] = React.useState<DOMRect | null>(
+    null
+  );
   const [selectedCell, setSelectedCell] = React.useState<{
     pathKey: string;
     colIdx: number;
   } | null>(null);
   const [openHeader, setOpenHeader] = React.useState<number | null>(null);
-  const [headerAnchorRect, setHeaderAnchorRect] = React.useState<DOMRect | null>(null)
+  const [headerAnchorRect, setHeaderAnchorRect] =
+    React.useState<DOMRect | null>(null);
   const tableRef = React.useRef<HTMLTableElement | null>(null);
 
   // Close menu when clicking outside
   React.useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      // Close any open menus/selections on a global click.
-      // Note: menu and caret buttons stop propagation when they are clicked,
-      // so this will not immediately close a menu when the user clicks it to open.
+    const onDocClick = () => {
       if (!tableRef.current) return;
       setHoveredCell(null);
       setOpenHeader(null);
@@ -194,6 +282,7 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
   }
   const optionArrays = steps.map((step) => step.options);
   const allCombinations = getAllCombinations(optionArrays);
+  const displayCombinations = filteredCombinations ?? allCombinations;
 
   // 단계별 전체 활성/비활성화 핸들러
   const handleStepToggleAll = (stepIdx: number, active: boolean) => {
@@ -229,7 +318,7 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
               minWidth: 110,
             }}
           >
-            {allCombinations.length} rows
+            {displayCombinations.length} rows
           </th>
           {steps.map((step, idx) => (
             <th
@@ -244,13 +333,15 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span>{idx + 1}단계</span>
-                  <input
+                  <AutoResizeInput
                     type="text"
                     className="step-input"
                     value={step.displayName}
                     onChange={(e) => onUpdateStepName(step.id, e.target.value)}
                     placeholder="단계 이름"
-                    style={{ width: 60 }}
+                    minWidth={60}
+                    maxWidth={300}
+                    style={{}}
                   />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -323,8 +414,13 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
         </tr>
       </thead>
       <tbody>
-        {allCombinations.map((row, rowIdx) => {
-          const pathKey = String(rowIdx);
+        {displayCombinations.map((row, rowIdx) => {
+          // pathKey는 실제 인덱스가 아니라, 원본 allCombinations에서의 인덱스를 찾아야 함
+          const pathKey = String(
+            allCombinations.findIndex((r) =>
+              r.every((opt, i) => opt.id === row[i].id)
+            )
+          );
           const isRowAllActive =
             Array.isArray(pathActivations[pathKey]) &&
             pathActivations[pathKey].every(Boolean);
@@ -455,7 +551,7 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                     }}
                   >
                     <div className="cell-content">
-                      <input
+                      <AutoResizeInput
                         type="text"
                         className="option-input"
                         value={option.displayName}
@@ -467,7 +563,9 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
                           )
                         }
                         placeholder="선택지 이름"
-                        style={{ width: 60 }}
+                        minWidth={60}
+                        maxWidth={300}
+                        style={{}}
                       />
                       <label className="cell-checkbox">
                         <input
@@ -574,15 +672,19 @@ const WorkflowPathTable: React.FC<WorkflowPathTableProps> = ({
 
 // 표 형태로 모든 경로(조합)를 행으로, 각 단계별 옵션을 열로 렌더링
 type WorkflowPathTableProps = {
-  steps: Step[]
-  pathActivations: PathActivationMap
-  onUpdateStepName: (stepId: string, name: string) => void
-  onUpdateOptionName: (stepId: string, optionId: string, name: string) => void
-  onAddOption: (stepId: string) => void
-  onDeleteOption: (stepId: string, optionId: string) => void
-  onToggleOptionActive: (pathKey: string, stepIdx: number, isActive: boolean) => void
-  onDeleteStep: (stepId: string) => void
-  onAddStepAtIndex: (stepIdx: number) => void
-}
+  steps: Step[];
+  pathActivations: PathActivationMap;
+  onUpdateStepName: (stepId: string, name: string) => void;
+  onUpdateOptionName: (stepId: string, optionId: string, name: string) => void;
+  onAddOption: (stepId: string) => void;
+  onDeleteOption: (stepId: string, optionId: string) => void;
+  onToggleOptionActive: (
+    pathKey: string,
+    stepIdx: number,
+    isActive: boolean
+  ) => void;
+  onDeleteStep: (stepId: string) => void;
+  onAddStepAtIndex: (stepIdx: number) => void;
+};
 
-export default WorkflowDesignTab
+export default WorkflowDesignTab;

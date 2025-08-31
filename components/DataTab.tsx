@@ -1,4 +1,5 @@
-import React, { useRef } from 'react'
+import React from 'react'
+import confirmAndRun from '../utils/confirmAndRun'
 import { Step } from '../hooks/useStepManager'
 
 interface DataManagementTabProps {
@@ -19,7 +20,7 @@ const DataManagementTab: React.FC<DataManagementTabProps> = ({ steps }) => {
       a.download = "workflow-data.json";
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       alert("내보내기 실패");
     }
   };
@@ -53,7 +54,7 @@ const DataManagementTab: React.FC<DataManagementTabProps> = ({ steps }) => {
           alert("데이터 추가 완료 — 페이지를 새로고침합니다");
           window.location.reload();
         }
-      } catch (err) {
+      } catch {
         alert("잘못된 JSON 파일입니다");
       }
     };
@@ -108,13 +109,7 @@ const DataManagementTab: React.FC<DataManagementTabProps> = ({ steps }) => {
             >
               JSON 교체(불러오기)
             </button>
-            <input
-              ref={null}
-              type="file"
-              accept="application/json"
-              style={{ display: "none" }}
-              onChange={(e) => handleImportFile(e, "append")}
-            />
+            {/* hidden input removed; append import is handled via temporary input button below */}
             <button
               className="btn-link small"
               onClick={() => {
@@ -122,8 +117,11 @@ const DataManagementTab: React.FC<DataManagementTabProps> = ({ steps }) => {
                 const tmp = document.createElement("input");
                 tmp.type = "file";
                 tmp.accept = "application/json";
-                tmp.onchange = (ev: any) =>
-                  handleImportFile(ev.target, "append");
+                tmp.onchange = (ev: Event) => {
+                  const target = ev.target as HTMLInputElement
+                  // reuse existing handler by casting to the expected React.ChangeEvent shape
+                  handleImportFile({ target } as unknown as React.ChangeEvent<HTMLInputElement>, 'append')
+                }
                 tmp.click();
               }}
             >
@@ -131,18 +129,19 @@ const DataManagementTab: React.FC<DataManagementTabProps> = ({ steps }) => {
             </button>
             <button
               className="btn-danger small"
-              onClick={() => {
-                if (
-                  !confirm(
-                    "정말 저장된 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-                  )
+              onClick={() =>
+                confirmAndRun(
+                  '정말 저장된 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+                  () => {
+                    try {
+                      window.localStorage.removeItem(STORAGE_KEY);
+                    } catch {
+                      alert("데이터 삭제에 실패했습니다.");
+                    }
+                    window.location.reload();
+                  }
                 )
-                  return;
-                try {
-                  window.localStorage.removeItem(STORAGE_KEY);
-                } catch (err) {}
-                window.location.reload();
-              }}
+              }
             >
               데이터 전체 삭제
             </button>
