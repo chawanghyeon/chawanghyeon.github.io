@@ -6,20 +6,31 @@ interface TableVisualizationTabProps {
   pathActivations?: PathActivationMap;
 }
 
+const BUFFER = 5; // 위/아래 여유 행
+
 const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
   steps,
   pathActivations,
 }) => {
-  // 필터 상태: 각 단계별로 선택된 옵션 id (null이면 전체)
   const [filters, setFilters] = React.useState<(string | null)[]>(
     steps.map(() => null)
   );
 
-  // steps 변경 시 필터 초기화
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = React.useState(0);
+  const [rowHeights, setRowHeights] = React.useState<number[]>([]);
+  const [viewportHeight, setViewportHeight] = React.useState(400);
+
   React.useEffect(() => {
     setFilters(steps.map(() => null));
   }, [steps]);
-  // Generate all combinations of options for each step (Cartesian product)
+
+  React.useEffect(() => {
+    if (containerRef.current) {
+      setViewportHeight(containerRef.current.clientHeight);
+    }
+  }, []);
+
   function getAllCombinations<T>(arrays: T[][]): T[][] {
     if (arrays.length === 0) return [[]];
     const [first, ...rest] = arrays;
@@ -44,14 +55,11 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
         ]
   );
 
-  // 필터링된 조합만 반환
   const filteredCombinations = getAllCombinations(optionArrays).filter((row) =>
     filters.every((filter, idx) => filter === null || row[idx].id === filter)
   );
 
-  // 각 단계별로 경우의 수(유니크 값 개수) 계산 (필터 적용 전 기준)
   const optionCounts = optionArrays.map((options, stepIdx) => {
-    // 필터 적용 후 남아있는 조합에서 해당 단계의 각 옵션별 등장 횟수
     const countMap: Record<string, number> = {};
     getAllCombinations(optionArrays)
       .filter((row) =>
@@ -67,7 +75,6 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
     return countMap;
   });
 
-  // Check if a row is active (fallback to step/option isActive if pathActivations not provided)
   const isRowActive = (
     row: {
       id: string;
@@ -77,34 +84,81 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
     }[],
     rowIndex: number
   ): boolean => {
-    // If we have per-path activations, use those
     if (pathActivations && Array.isArray(pathActivations[String(rowIndex)])) {
-      const arr = pathActivations[String(rowIndex)];
-      return arr.every((cellActive, idx) => {
-        const option = row[idx];
-        if (!option) return false;
-        if (!steps[idx].isActive) return false;
-        return !!cellActive && !!option.isActive;
-      });
+      return pathActivations[String(rowIndex)].every(
+        (cellActive, idx) =>
+          !!cellActive && !!row[idx].isActive && steps[idx].isActive
+      );
     }
-
-    // Fallback: a row is active only if every step and option is active
-    return row.every((option, idx) => {
-      if (!option) return false;
-      if (!steps[idx].isActive) return false;
-      if (!option.isActive) return false;
-      return true;
-    });
+    return row.every((option, idx) => !!option.isActive && steps[idx].isActive);
   };
 
+  // --- 가상 스크롤 계산 ---
+  const total = filteredCombinations.length;
+
+  // 누적 높이 계산
+  const cumHeights = React.useMemo(() => {
+    const arr: number[] = [];
+    let sum = 0;
+    for (let i = 0; i < total; i++) {
+      const h = rowHeights[i] || 40; // 초기 추정 높이
+      arr.push(sum);
+      sum += h;
+    }
+    return arr;
+  }, [rowHeights, total]);
+
+  // start / end 인덱스 계산
+  let start = 0;
+  while (
+    start < total &&
+    cumHeights[start] + (rowHeights[start] || 40) < scrollTop
+  )
+    start++;
+  let end = start;
+  while (
+    end < total &&
+    cumHeights[end] < scrollTop + viewportHeight + BUFFER * 40
+  )
+    end++;
+
+  const visibleRows = filteredCombinations.slice(start, end);
+
+  // --- ResizeObserver로 동적 row 높이 측정 ---
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      setRowHeights((prev) => {
+        const newHeights = [...prev];
+        entries.forEach((entry) => {
+          const index = Number(entry.target.getAttribute("data-index"));
+          newHeights[index] = entry.contentRect.height;
+        });
+        return newHeights;
+      });
+    });
+
+    const rows = containerRef.current.querySelectorAll("tbody tr.data-row");
+    rows.forEach((row, idx) => {
+      row.setAttribute("data-index", String(start + idx));
+      observer.observe(row);
+    });
+
+    return () => observer.disconnect();
+  }, [visibleRows, start]);
+
   return (
-    <div className="table-container">
+    <div className="table-container" style={{ width: "100%" }}>
       <h2>📊 표 시각화</h2>
-      {/* 단계별 필터 UI */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+
+      {/* 필터 UI */}
+      <div
+        style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}
+      >
         {steps.map((step, stepIdx) => (
-          <div key={step.id} style={{ minWidth: 120 }}>
-            <label style={{ fontWeight: 500, fontSize: 13 }}>
+          <div key={step.id} style={{ flex: "1 1 120px" }}>
+            <label style={{ fontWeight: 500, fontSize: "0.8rem" }}>
               {step.displayName || step.name}
             </label>
             <select
@@ -242,70 +296,84 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
           복사하기
         </button>
       </div>
-      <div id="tableVisualization">
-        {steps.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📊</div>
-            <h3>표 시각화</h3>
-            <p>단계를 추가하면 모든 경로가 표로 표시됩니다.</p>
-          </div>
-        ) : filteredCombinations.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📋</div>
-            <h3>경로 없음</h3>
-            <p>완성된 경로가 없습니다. 단계를 추가해보세요.</p>
-          </div>
-        ) : (
-          <div className="excel-table-wrapper">
-            <div className="excel-table-container">
-              <table className="excel-table" role="grid">
-                <thead>
-                  <tr>
-                    {stepNames.map((stepName, idx) => (
-                      <th key={idx}>{stepName}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCombinations.map((row, index) => {
-                    const isActive = isRowActive(row, index);
+
+      {/* 테이블 */}
+      <div
+        className="excel-table-container"
+        ref={containerRef}
+        style={{ height: "100vh", overflowY: "auto" }}
+        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+      >
+        <table className="excel-table" role="grid" style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              {stepNames.map((name, idx) => (
+                <th key={idx}>{name}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {/* 위쪽 패딩 */}
+            {start > 0 && (
+              <tr style={{ height: cumHeights[start] }}>
+                <td
+                  colSpan={stepNames.length}
+                  style={{ padding: 0, border: "none" }}
+                />
+              </tr>
+            )}
+
+            {visibleRows.map((row, idx) => {
+              const realIndex = start + idx;
+              const active = isRowActive(row, realIndex);
+              return (
+                <tr
+                  key={realIndex}
+                  className={active ? "data-row" : "data-row inactive-row"}
+                >
+                  {row.map((option, stepIdx) => {
+                    const cellActive =
+                      pathActivations &&
+                      Array.isArray(pathActivations[String(realIndex)])
+                        ? !!pathActivations[String(realIndex)][stepIdx]
+                        : !!(steps[stepIdx].isActive && option.isActive);
                     return (
-                      <tr
-                        key={index}
+                      <td
+                        key={option.id || stepIdx}
                         className={
-                          isActive ? "data-row" : "data-row inactive-row"
+                          !cellActive && option.name !== "-"
+                            ? "inactive-cell"
+                            : "data-cell"
                         }
                       >
-                        {row.map((option, idx) => {
-                          // determine cell active state from pathActivations if available
-                          const cellActive =
-                            pathActivations &&
-                            Array.isArray(pathActivations[String(index)])
-                              ? !!pathActivations[String(index)][idx]
-                              : !!(steps[idx].isActive && option.isActive);
-                          return (
-                            <td
-                              key={option.id || idx}
-                              className={
-                                !cellActive && option.name !== "-"
-                                  ? "inactive-cell"
-                                  : "data-cell"
-                              }
-                            >
-                              <div className="cell-inner">
-                                {option.displayName || option.name}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
+                        <div className="cell-inner">
+                          {option.displayName || option.name}
+                        </div>
+                      </td>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+                </tr>
+              );
+            })}
+
+            {/* 아래쪽 패딩 */}
+            {end < total && (
+              <tr
+                style={{
+                  height:
+                    cumHeights[total - 1] -
+                    cumHeights[end] +
+                    (rowHeights[total - 1] || 40),
+                }}
+              >
+                <td
+                  colSpan={stepNames.length}
+                  style={{ padding: 0, border: "none" }}
+                />
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

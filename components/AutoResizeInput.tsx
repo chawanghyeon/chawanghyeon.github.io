@@ -35,6 +35,8 @@ const AutoResizeInput: React.FC<AutoResizeInputProps> = ({
         {...props}
         ref={inputRef}
         value={value}
+        title={value || props.placeholder}
+        aria-label={props["aria-label"] || value || props.placeholder}
         style={{
           ...style,
           width: inputWidth,
