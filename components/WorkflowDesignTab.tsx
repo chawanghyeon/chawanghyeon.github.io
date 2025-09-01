@@ -1,12 +1,8 @@
 import React from "react";
+import { Step, OptionActivationMap, PathActivationMap } from "../lib/types";
 import AutoResizeInput from "./AutoResizeInput";
-import { Step } from "../hooks/useStepManager";
-
-import {
-  OptionActivationMap,
-  PathActivationMap,
-} from "../hooks/useStepManager";
 import MenuPortal from "./MenuPortal";
+import { useIsClient } from "../hooks/useIsClient";
 
 type Props = {
   steps: Step[];
@@ -32,38 +28,339 @@ type Props = {
   onAddStepAtIndex: (stepIdx: number) => void;
 };
 
-const BUFFER = 5; // 위/아래 여유 행
-const ESTIMATED_ROW_HEIGHT = 40; // 초기 추정 높이 (px) — 실제는 ResizeObserver로 갱신됨
+// 가상화 스크롤 설정
+const ITEM_HEIGHT = 30; // 고정 행 높이
+const OVERSCAN = 5; // 버퍼 행 수
+
+// Global width cache for Excel-like behavior
+const cellWidthCache = new Map<string, number>();
+const MIN_CELL_WIDTH = 60;
+const MAX_CELL_WIDTH = 300;
+
+// 조합 생성 함수
+function generateAllCombinations<T>(arrays: T[][]): T[][] {
+  if (arrays.length === 0) return [[]];
+  const [first, ...rest] = arrays;
+  const restCombinations = generateAllCombinations(rest);
+  const out: T[][] = [];
+  for (let i = 0; i < first.length; i++) {
+    const item = first[i];
+    for (let j = 0; j < restCombinations.length; j++) {
+      out.push([item, ...restCombinations[j]]);
+    }
+  }
+  return out;
+}
+
+// Excel-like stable width input component
+const StableWidthInput: React.FC<{
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  cellKey: string; // Unique key for this cell (pathKey:colIdx:optionId)
+  className?: string;
+}> = React.memo(({ value, onChange, placeholder, cellKey, className }) => {
+  const isClient = useIsClient();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Use ref to track internal value and avoid state updates during typing
+  const internalValueRef = React.useRef(value);
+  const isTypingRef = React.useRef(false);
+  const changeTimeoutRef = React.useRef<NodeJS.Timeout>();
+  
+  // Width state with stable caching
+  const [width, setWidth] = React.useState(() => {
+    const cached = cellWidthCache.get(cellKey);
+    if (cached) return cached;
+    
+    // Calculate reasonable initial width
+    const estimatedWidth = Math.max(MIN_CELL_WIDTH, Math.min(MAX_CELL_WIDTH, (value || placeholder || '').length * 8 + 20));
+    cellWidthCache.set(cellKey, estimatedWidth);
+    return estimatedWidth;
+  });
+
+  // Only update internal value when external value changes AND input is not focused
+  React.useEffect(() => {
+    if (document.activeElement !== inputRef.current && !isTypingRef.current) {
+      internalValueRef.current = value;
+      if (inputRef.current) {
+        inputRef.current.value = value;
+      }
+    }
+  }, [value]);
+
+  // Handle input changes with minimal state updates
+  const handleChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    internalValueRef.current = newValue;
+    isTypingRef.current = true;
+    
+    // Clear previous timeout
+    if (changeTimeoutRef.current) {
+      clearTimeout(changeTimeoutRef.current);
+    }
+    
+    // Debounce the external onChange call
+    changeTimeoutRef.current = setTimeout(() => {
+      onChange({ target: { value: newValue } } as React.ChangeEvent<HTMLInputElement>);
+      isTypingRef.current = false;
+    }, 500); // Longer debounce for stability
+  }, [onChange]);
+
+  // Update width only when really necessary
+  const updateWidth = React.useCallback(() => {
+    if (!inputRef.current || typeof window === 'undefined' || isTypingRef.current) return;
+    
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.font = getComputedStyle(inputRef.current).font;
+      const textWidth = context.measureText(internalValueRef.current).width;
+      const newWidth = Math.max(MIN_CELL_WIDTH, Math.min(MAX_CELL_WIDTH, textWidth + 20));
+      
+      // Only update if width changed significantly
+      if (Math.abs(newWidth - width) > 15) {
+        setWidth(newWidth);
+        cellWidthCache.set(cellKey, newWidth);
+      }
+    }
+  }, [cellKey, width]);
+
+  // Minimal width updates with long debounce
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || isTypingRef.current) return;
+    const timeoutId = setTimeout(updateWidth, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [updateWidth]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (changeTimeoutRef.current) {
+        clearTimeout(changeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      className={className}
+      defaultValue={value} // Use defaultValue instead of controlled value
+      onChange={handleChange}
+      placeholder={placeholder}
+      title={internalValueRef.current || placeholder}
+      {...(isClient && { 'data-cell-key': cellKey })} // Only add data-cell-key on client
+      style={{
+        width: `${width}px`,
+        minWidth: `${MIN_CELL_WIDTH}px`,
+        maxWidth: `${MAX_CELL_WIDTH}px`,
+        transition: 'none',
+        border: '1px solid #ccc',
+        padding: '4px 8px',
+        fontSize: '14px',
+        fontFamily: 'inherit'
+      }}
+    />
+  );
+});
+
+StableWidthInput.displayName = 'StableWidthInput';
+const MemoizedStableWidthInput = React.memo(StableWidthInput, (prevProps, nextProps) => {
+  // Very simple comparison - only re-render if absolutely necessary
+  return prevProps.cellKey === nextProps.cellKey &&
+         prevProps.placeholder === nextProps.placeholder &&
+         prevProps.className === nextProps.className;
+  // Note: Removed value comparison since we're using defaultValue + refs
+});
+
+// 가상화 스크롤 훅
+function useVirtualScroll(
+  itemCount: number,
+  itemHeight: number,
+  containerHeight: number,
+  scrollTop: number
+) {
+  return React.useMemo(() => {
+    if (itemCount === 0) {
+      return {
+        visibleStartIndex: 0,
+        visibleStopIndex: 0,
+        visibleItems: [],
+        totalHeight: 0,
+        offsetY: 0
+      };
+    }
+
+    const visibleStart = Math.floor(scrollTop / itemHeight);
+    const visibleEnd = Math.min(
+      itemCount - 1,
+      Math.floor((scrollTop + containerHeight) / itemHeight)
+    );
+
+    const startIndex = Math.max(0, visibleStart - OVERSCAN);
+    const stopIndex = Math.min(itemCount - 1, visibleEnd + OVERSCAN);
+
+    const visibleItems = [];
+    for (let i = startIndex; i <= stopIndex; i++) {
+      visibleItems.push(i);
+    }
+
+    return {
+      visibleStartIndex: startIndex,
+      visibleStopIndex: stopIndex,
+      visibleItems,
+      totalHeight: itemCount * itemHeight,
+      offsetY: startIndex * itemHeight
+    };
+  }, [itemCount, itemHeight, containerHeight, scrollTop]);
+}
 
 const WorkflowDesignTab: React.FC<Props> = (props) => {
-  // 단계별 필터 상태: 각 단계별로 선택된 옵션 id (null이면 전체)
+  // 필터 상태
   const [filters, setFilters] = React.useState<(string | null)[]>(
     props.steps.map(() => null)
   );
-  // steps 변경 시 필터 초기화
-  React.useEffect(() => {
-    setFilters(props.steps.map(() => null));
-  }, [props.steps]);
 
   // 조합별 토글 UI 상태
   const [comboSelections, setComboSelections] = React.useState<{
     [stepIdx: number]: string;
   }>({});
 
+  // 가상화 스크롤 상태
+  const [scrollTop, setScrollTop] = React.useState(0);
+  const [containerHeight, setContainerHeight] = React.useState(400);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // UI 상태
+  const [hoveredCell, setHoveredCell] = React.useState<{
+    rowIndex: number;
+    colIndex: number;
+  } | null>(null);
+  const [selectedCell, setSelectedCell] = React.useState<{
+    rowIndex: number;
+    colIndex: number;
+  } | null>(null);
+  
+  // 메뉴 상태
+  const [cellAnchorRect, setCellAnchorRect] = React.useState<DOMRect | null>(null);
+  const [openHeader, setOpenHeader] = React.useState<number | null>(null);
+  const [headerAnchorRect, setHeaderAnchorRect] = React.useState<DOMRect | null>(null);
+
+  // steps 변경 시 필터 초기화
+  React.useEffect(() => {
+    setFilters(props.steps.map(() => null));
+  }, [props.steps]);
+
+  // 메뉴 닫기 이벤트
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setHoveredCell(null);
+      setOpenHeader(null);
+      setCellAnchorRect(null);
+      setHeaderAnchorRect(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // 컨테이너 높이 측정
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(containerRef.current);
+    updateHeight();
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // 조합 생성 및 필터링
+  const optionArrays = React.useMemo(
+    () => props.steps.map((step) => step.options),
+    [props.steps]
+  );
+  
+  const allCombinations = React.useMemo(() => 
+    generateAllCombinations(optionArrays), 
+    [optionArrays]
+  );
+  
+  const filteredCombinations = React.useMemo(() => 
+    allCombinations.filter((row) =>
+      filters.every((filter, idx) => filter === null || row[idx].id === filter)
+    ), 
+    [allCombinations, filters]
+  );
+
+  // Precompute maps for faster lookups (bulk toggle 기능을 위해)
+  type LocalOption = { id: string; name?: string; displayName?: string };
+
+  const optionToCombinationIndices = React.useMemo(() => {
+    // map: `${colIdx}:${optionId}` -> number[] (combination indices)
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < allCombinations.length; i++) {
+      const comb = allCombinations[i] as LocalOption[];
+      for (let col = 0; col < comb.length; col++) {
+        const optId = comb[col].id;
+        const k = `${col}:${optId}`;
+        const arr = map.get(k);
+        if (arr) arr.push(i);
+        else map.set(k, [i]);
+      }
+    }
+    return map;
+  }, [allCombinations]);
+
+  // 가상화 스크롤 계산
+  const virtualResult = useVirtualScroll(
+    filteredCombinations.length,
+    ITEM_HEIGHT,
+    containerHeight,
+    scrollTop
+  );
+
+  // 스크롤 핸들러
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  // 단계 전체 활성화 상태 확인
+  const isStepAllActive = React.useCallback(
+    (stepIdx: number) => {
+      if (!props.pathActivations) return false;
+      return Object.values(props.pathActivations).every(
+        (row) => Array.isArray(row) && row[stepIdx]
+      );
+    },
+    [props.pathActivations]
+  );
+
+  // 행 bulk toggle 핸들러 생성
+  const { onToggleOptionActive } = props;
+  const createRowBulkToggleHandler = React.useCallback(
+    (pathKey: string, row: LocalOption[], isRowAllActive: boolean) => () => {
+      const targetActive = !isRowAllActive;
+      row.forEach((_, colIdx) => {
+        onToggleOptionActive(pathKey, colIdx, targetActive);
+      });
+    },
+    [onToggleOptionActive]
+  );
+
   // 조합별 토글 실행 핸들러
   const handleComboToggle = (targetActive: boolean) => {
     if (Object.keys(comboSelections).length === 0) return;
-    const optionArrays = props.steps.map((step) => step.options);
-    function getAllCombinations<T>(arrays: T[][]): T[][] {
-      if (arrays.length === 0) return [[]];
-      const [first, ...rest] = arrays;
-      const restCombinations = getAllCombinations(rest);
-      return first.flatMap((item) =>
-        restCombinations.map((comb) => [item, ...comb])
-      );
-    }
-    const allCombinations = getAllCombinations(optionArrays);
-    allCombinations.forEach((row: { id: string }[], rowIdx: number) => {
+    
+    allCombinations.forEach((row, rowIdx) => {
       const match = Object.entries(comboSelections).every(
         ([stepIdx, optionId]) => row[Number(stepIdx)].id === optionId
       );
@@ -79,115 +376,133 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
     });
   };
 
-  // 필터링 로직: 필터 조건에 맞는 조합만 반환
-  const optionArrays = props.steps.map((step) => step.options);
-  function getAllCombinations<T>(arrays: T[][]): T[][] {
-    if (arrays.length === 0) return [[]];
-    const [first, ...rest] = arrays;
-    const restCombinations = getAllCombinations(rest);
-    return first.flatMap((item) =>
-      restCombinations.map((comb) => [item, ...comb])
-    );
-  }
-  const allCombinations = getAllCombinations(optionArrays);
-  const filteredCombinations = allCombinations.filter((row) =>
-    filters.every((filter, idx) => filter === null || row[idx].id === filter)
-  );
-
-  // 각 단계별로 경우의 수(유니크 값 개수) 계산 (필터 적용 전 기준)
-  const optionCounts = optionArrays.map((options, stepIdx) => {
-    const countMap: Record<string, number> = {};
-    allCombinations
-      .filter((row) =>
-        filters.every(
-          (filter, idx) =>
-            idx === stepIdx || filter === null || row[idx].id === filter
-        )
-      )
-      .forEach((row) => {
-        const opt = row[stepIdx];
-        countMap[opt.id] = (countMap[opt.id] || 0) + 1;
+  // 단계별 활성화 통계 계산 (고급 버전)
+  const stepStats = React.useMemo(() => {
+    return props.steps.map((step, stepIdx) => {
+      // 전체 조합에서 이 단계의 통계 계산
+      const totalPaths = allCombinations.length;
+      const activePaths = Object.values(props.pathActivations).filter(
+        (pathArray) => Array.isArray(pathArray) && pathArray[stepIdx]
+      ).length;
+      
+      // 이 단계의 각 옵션별 활성화 상태
+      const optionStats: { [optionId: string]: { active: number; total: number } } = {};
+      
+      step.options.forEach(option => {
+        const optionCombinations = optionToCombinationIndices.get(`${stepIdx}:${option.id}`) || [];
+        const activeCount = optionCombinations.filter(
+          combIdx => props.pathActivations[String(combIdx)]?.[stepIdx]
+        ).length;
+        
+        optionStats[option.id] = {
+          active: activeCount,
+          total: optionCombinations.length
+        };
       });
-    return countMap;
-  });
+      
+      return {
+        totalCount: totalPaths,
+        activeCount: activePaths,
+        percentage: totalPaths > 0 ? Math.round((activePaths / totalPaths) * 100) : 0,
+        optionStats
+      };
+    });
+  }, [props.steps, props.pathActivations, allCombinations, optionToCombinationIndices]);
 
   return (
     <section className="workflow-design-tab">
-      {/* 단계별 필터 UI */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-        {props.steps.map((step, stepIdx) => (
-          <div key={step.id} style={{ minWidth: 120 }}>
-            <label style={{ fontWeight: 500, fontSize: 13 }}>
-              {step.displayName || step.name}
-            </label>
-            <select
-              style={{ width: "100%", marginTop: 2 }}
-              value={filters[stepIdx] ?? ""}
-              onChange={(e) => {
-                const v = e.target.value || null;
-                setFilters((f) =>
-                  f.map((old, i) =>
-                    i === stepIdx ? (v === "" ? null : v) : old
-                  )
-                );
-              }}
-            >
-              <option value="">전체 ({optionArrays[stepIdx].length})</option>
-              {optionArrays[stepIdx].map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.displayName || opt.name} (
-                  {optionCounts[stepIdx][opt.id] || 0})
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+      {/* 상단 액션 버튼 */}
+      <div style={{ 
+        marginBottom: 16, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
+        <h3 style={{ margin: 0 }}>워크플로우 설계</h3>
+        <button
+          onClick={props.onAddRootStep}
+          className="btn-primary"
+        >
+          단계 추가
+        </button>
       </div>
 
+      {/* 단계별 필터 UI (통계 포함) */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+        {props.steps.map((step, stepIdx) => {
+          const stats = stepStats[stepIdx];
+          const stepStats_display = stats ? 
+            `총 ${stats.totalCount} / 활성 ${stats.activeCount} / 비활성 ${stats.totalCount - stats.activeCount}` : 
+            '';
+          
+          return (
+            <div key={step.id} style={{ minWidth: 180 }}>
+              <label style={{ fontWeight: 500, fontSize: 13, display: 'block' }}>
+                {stepIdx + 1}단계 필터
+              </label>
+              <div style={{ fontSize: 11, color: '#6c757d', marginBottom: 2 }}>
+                {stepStats_display}
+              </div>
+              <select
+                style={{ width: "100%", marginTop: 2 }}
+                value={filters[stepIdx] ?? ""}
+                onChange={(e) => {
+                  const newFilters = [...filters];
+                  newFilters[stepIdx] = e.target.value || null;
+                  setFilters(newFilters);
+                }}
+              >
+                <option value="">전체</option>
+                {step.options.map((option) => {
+                  const optionStats = stats?.optionStats[option.id];
+                  const optionStatsDisplay = optionStats ? 
+                    ` (${optionStats.active}/${optionStats.total})` : '';
+                  
+                  return (
+                    <option key={option.id} value={option.id}>
+                      {(option.displayName || option.name) + optionStatsDisplay}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 조합별 토글 UI */}
       <div className="combo-toolbar">
         <div className="combo-toolbar-row">
           <strong className="combo-label">조합별 토글</strong>
           <div className="combo-selects">
             {props.steps.map((step, stepIdx) => (
-              <div className="combo-item" key={step.id}>
-                <label className="combo-step-label">{stepIdx + 1}단계</label>
+              <div key={step.id} className="combo-item">
+                <span className="combo-step-label">{stepIdx + 1}단계:</span>
                 <select
-                  aria-label={`단계 ${stepIdx + 1} 옵션 선택`}
-                  value={comboSelections[stepIdx] || ""}
-                  onChange={(e) =>
-                    setComboSelections((sel) => ({
-                      ...sel,
-                      [stepIdx]: e.target.value,
-                    }))
-                  }
                   className="combo-select"
+                  value={comboSelections[stepIdx] || ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setComboSelections(prev => ({
+                        ...prev,
+                        [stepIdx]: e.target.value
+                      }));
+                    } else {
+                      setComboSelections(prev => {
+                        const next = { ...prev };
+                        delete next[stepIdx];
+                        return next;
+                      });
+                    }
+                  }}
                 >
-                  <option value="">(선택안함)</option>
-                  {step.options.map(
-                    (opt: {
-                      id: string;
-                      displayName: string;
-                      name: string;
-                    }) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.displayName || opt.name}
-                      </option>
-                    )
-                  )}
+                  <option value="">선택안함</option>
+                  {step.options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.displayName || option.name}
+                    </option>
+                  ))}
                 </select>
-                <button
-                  onClick={() =>
-                    setComboSelections((sel) => {
-                      const copy = { ...sel };
-                      delete copy[stepIdx];
-                      return copy;
-                    })
-                  }
-                  className="btn-link small"
-                  title="이 단계 조합에서 제외"
-                >
-                  제외
-                </button>
               </div>
             ))}
           </div>
@@ -209,685 +524,376 @@ const WorkflowDesignTab: React.FC<Props> = (props) => {
         </div>
       </div>
 
+      {/* 가상화 테이블 */}
       <div className="tab-content horizontal-tree-root">
-        <div className="horizontal-tree-container">
-          <WorkflowPathTable
-            steps={props.steps}
-            pathActivations={props.pathActivations}
-            onUpdateStepName={props.onUpdateStepName}
-            onUpdateOptionName={props.onUpdateOptionName}
-            onAddOption={props.onAddOption}
-            onDeleteOption={props.onDeleteOption}
-            onToggleOptionActive={props.onToggleOptionActive}
-            onDeleteStep={props.onDeleteStep}
-            onAddStepAtIndex={props.onAddStepAtIndex}
-            filteredCombinations={filteredCombinations}
-          />
-        </div>
-      </div>
-    </section>
-  );
-};
-
-type Combination = {
-  id: string;
-  name: string;
-  displayName: string;
-  isActive?: boolean;
-}[];
-
-type WorkflowPathTableProps = {
-  steps: Step[];
-  pathActivations: PathActivationMap;
-  onUpdateStepName: (stepId: string, name: string) => void;
-  onUpdateOptionName: (stepId: string, optionId: string, name: string) => void;
-  onAddOption: (stepId: string) => void;
-  onDeleteOption: (stepId: string, optionId: string) => void;
-  onToggleOptionActive: (
-    pathKey: string,
-    stepIdx: number,
-    isActive: boolean
-  ) => void;
-  onDeleteStep: (stepId: string) => void;
-  onAddStepAtIndex: (stepIdx: number) => void;
-};
-
-const WorkflowPathTable: React.FC<
-  WorkflowPathTableProps & { filteredCombinations?: Combination[] }
-> = ({
-  steps,
-  pathActivations,
-  onUpdateStepName,
-  onUpdateOptionName,
-  onAddOption,
-  onDeleteOption,
-  onToggleOptionActive,
-  onDeleteStep,
-  onAddStepAtIndex,
-  filteredCombinations,
-}) => {
-  const [hoveredCell, setHoveredCell] = React.useState<{
-    pathKey: string;
-    colIdx: number;
-  } | null>(null);
-  const [cellAnchorRect, setCellAnchorRect] = React.useState<DOMRect | null>(
-    null
-  );
-  const [selectedCell, setSelectedCell] = React.useState<{
-    pathKey: string;
-    colIdx: number;
-  } | null>(null);
-  const [openHeader, setOpenHeader] = React.useState<number | null>(null);
-  const [headerAnchorRect, setHeaderAnchorRect] =
-    React.useState<DOMRect | null>(null);
-
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const tableRef = React.useRef<HTMLTableElement | null>(null);
-
-  // Close menu when clicking outside
-  React.useEffect(() => {
-    const onDocClick = () => {
-      if (!tableRef.current) return;
-      setHoveredCell(null);
-      setOpenHeader(null);
-      setSelectedCell(null);
-    };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
-
-  // --- combinations (memoized) ---
-  // centralized, memoized combination generator to avoid re-compute on each render
-  const optionArrays = React.useMemo(
-    () => steps.map((step) => step.options),
-    [steps]
-  );
-  const allCombinations = React.useMemo(() => {
-    function generate<T>(arrays: T[][]): T[][] {
-      if (arrays.length === 0) return [[]];
-      const [first, ...rest] = arrays;
-      const restCombinations = generate(rest);
-      const out: T[][] = [];
-      for (let i = 0; i < first.length; i++) {
-        const item = first[i];
-        for (let j = 0; j < restCombinations.length; j++) {
-          out.push([item, ...restCombinations[j]]);
-        }
-      }
-      return out;
-    }
-    return generate(optionArrays);
-  }, [optionArrays]);
-
-  const displayCombinations = React.useMemo(
-    () => filteredCombinations ?? allCombinations,
-    [filteredCombinations, allCombinations]
-  );
-
-  // --- 가상 스크롤 상태 ---
-  const total = displayCombinations.length;
-  const [rowHeights, setRowHeights] = React.useState<number[]>(() =>
-    new Array(total).fill(ESTIMATED_ROW_HEIGHT)
-  );
-  const [scrollTop, setScrollTop] = React.useState(0);
-  const [viewportHeight, setViewportHeight] = React.useState(400);
-
-  // keep rowHeights length in sync with total
-  React.useEffect(() => {
-    setRowHeights((prev) => {
-      if (prev.length === total) return prev;
-      const next = new Array(total).fill(ESTIMATED_ROW_HEIGHT);
-      for (let i = 0; i < Math.min(prev.length, total); i++) next[i] = prev[i];
-      return next;
-    });
-  }, [total]);
-
-  // measure container height
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(() => {
-      if (containerRef.current)
-        setViewportHeight(containerRef.current.clientHeight);
-    });
-    ro.observe(containerRef.current);
-    setViewportHeight(containerRef.current.clientHeight);
-    return () => ro.disconnect();
-  }, []);
-
-  // cumHeights: offset at index i = sum of heights before i
-  const cumHeights = React.useMemo(() => {
-    const arr: number[] = [];
-    let sum = 0;
-    for (let i = 0; i < total; i++) {
-      arr.push(sum);
-      sum += rowHeights[i] || ESTIMATED_ROW_HEIGHT;
-    }
-    return arr;
-  }, [rowHeights, total]);
-
-  // compute start/end by scanning cumHeights
-  let start = 0;
-  while (
-    start < total &&
-    cumHeights[start] + (rowHeights[start] || ESTIMATED_ROW_HEIGHT) < scrollTop
-  ) {
-    start++;
-  }
-  let end = start;
-  const bufferPx = BUFFER * ESTIMATED_ROW_HEIGHT;
-  while (
-    end < total &&
-    cumHeights[end] < scrollTop + viewportHeight + bufferPx
-  ) {
-    end++;
-  }
-  const visibleRows = displayCombinations.slice(start, end);
-
-  // total content height
-  const totalHeight =
-    total === 0
-      ? 0
-      : cumHeights[total - 1] + (rowHeights[total - 1] || ESTIMATED_ROW_HEIGHT);
-
-  // ResizeObserver to measure visible rows. Batch updates to avoid many state updates.
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    const pending: { index: number; height: number }[] = [];
-    let scheduled = false;
-    const observer = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        const idxAttr = entry.target.getAttribute("data-index");
-        if (!idxAttr) return;
-        const index = Number(idxAttr);
-        if (!Number.isNaN(index) && index >= 0 && index < total) {
-          pending.push({ index, height: entry.contentRect.height });
-        }
-      });
-      if (!scheduled) {
-        scheduled = true;
-        requestAnimationFrame(() => {
-          setRowHeights((prev) => {
-            const next = prev.slice();
-            for (const p of pending) {
-              next[p.index] = p.height;
-            }
-            return next;
-          });
-          pending.length = 0;
-          scheduled = false;
-        });
-      }
-    });
-
-    const tbodyRows =
-      containerRef.current.querySelectorAll("tbody tr.data-row");
-    tbodyRows.forEach((tr) => {
-      const idxAttr = tr.getAttribute("data-index");
-      if (idxAttr !== null) observer.observe(tr);
-    });
-
-    return () => observer.disconnect();
-  }, [start, end, total]);
-
-  // Scroll handler attached to container — use RAF to throttle updates
-  const rafRef = React.useRef<number | null>(null);
-  const pendingScrollTop = React.useRef(0);
-  const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    pendingScrollTop.current = e.currentTarget.scrollTop;
-    if (rafRef.current == null) {
-      rafRef.current = requestAnimationFrame(() => {
-        setScrollTop(pendingScrollTop.current);
-        rafRef.current = null;
-      });
-    }
-  };
-
-  // helpers for activation logic are identical to original
-  // Precompute maps for faster lookups
-  type LocalOption = { id: string; name?: string; displayName?: string };
-
-  const optionToCombinationIndices = React.useMemo(() => {
-    // map: `${colIdx}:${optionId}` -> number[] (combination indices)
-    const map = new Map<string, number[]>();
-    for (let i = 0; i < allCombinations.length; i++) {
-      const comb = allCombinations[i] as LocalOption[];
-      for (let col = 0; col < comb.length; col++) {
-        const optId = comb[col].id;
-        const k = `${col}:${optId}`;
-        const arr = map.get(k);
-        if (arr) arr.push(i);
-        else map.set(k, [i]);
-      }
-    }
-    return map;
-  }, [allCombinations]);
-
-  const isStepAllActive = React.useCallback(
-    (stepIdx: number) => {
-      if (!pathActivations) return false;
-      return Object.values(pathActivations).every(
-        (row) => Array.isArray(row) && row[stepIdx]
-      );
-    },
-    [pathActivations]
-  );
-
-  return (
-    <div
-      ref={containerRef}
-      className="excel-table-container"
-      style={{ height: "100vh", overflowY: "auto" }}
-      onScroll={onScroll}
-    >
-      <table
-        ref={tableRef}
-        className="workflow-path-table"
-        style={{ borderCollapse: "collapse", minWidth: 600, width: "100%" }}
-      >
-        <thead>
-          <tr>
-            <th
+        <div 
+          ref={containerRef}
+          className="virtual-table-container"
+          style={{
+            height: '60vh',
+            overflow: 'auto',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            position: 'relative'
+          }}
+          onScroll={handleScroll}
+        >
+          {/* 전체 높이를 위한 컨테이너 */}
+          <div style={{ 
+            height: virtualResult.totalHeight, 
+            position: 'relative',
+            minWidth: `${60 + (props.steps.length * 180)}px` // 동적 최소 너비 설정
+          }}>
+            {/* 헤더 (고정) */}
+            <div 
               style={{
-                border: "1px solid #ccc",
-                padding: 8,
-                background: "#f8f8f8",
-                textAlign: "center",
-                minWidth: 110,
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                backgroundColor: '#f8f9fa',
+                borderBottom: '2px solid #dee2e6',
+                minWidth: `${60 + (props.steps.length * 180)}px` // 헤더도 동일한 최소 너비
               }}
             >
-              {displayCombinations.length} rows
-            </th>
-            {steps.map((step, idx) => (
-              <th
-                key={step.id}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: 8,
-                  background: "#f8f8f8",
-                  position: "relative",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <span>{idx + 1}단계</span>
-                    <AutoResizeInput
-                      type="text"
-                      className="step-input"
-                      value={step.displayName}
-                      onChange={(e) =>
-                        onUpdateStepName(step.id, e.target.value)
-                      }
-                      placeholder="단계 이름"
-                      minWidth={60}
-                      maxWidth={300}
-                    />
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span className="header-caret-wrap">
-                      <button
-                        className="cell-caret header-caret"
-                        aria-haspopup="true"
-                        aria-expanded={openHeader === idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const newOpen = openHeader === idx ? null : idx;
-                          setOpenHeader(newOpen);
-                          setHeaderAnchorRect(
-                            newOpen === null
-                              ? null
-                              : (
-                                  e.currentTarget as HTMLElement
-                                ).getBoundingClientRect()
-                          );
-                        }}
-                        title="단계 메뉴"
-                      >
-                        ▾
-                      </button>
-                      {openHeader === idx && headerAnchorRect && (
-                        <MenuPortal anchorRect={headerAnchorRect}>
-                          <div
-                            className="header-menu"
-                            role="menu"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              className="cell-menu-item"
-                              onClick={() => onAddOption(step.id)}
-                            >
-                              선택지 추가
-                            </button>
-                            <button
-                              className="cell-menu-item"
-                              onClick={() => {
-                                // toggle all in this step
-                                const target = !isStepAllActive(idx);
-                                Object.keys(pathActivations).forEach(
-                                  (pathKey) => {
-                                    onToggleOptionActive(pathKey, idx, target);
-                                  }
-                                );
-                              }}
-                            >
-                              {isStepAllActive(idx)
-                                ? "전체 비활성화"
-                                : "전체 활성화"}
-                            </button>
-                            <button
-                              className="cell-menu-item"
-                              onClick={() => onDeleteStep(step.id)}
-                              disabled={steps.length === 1}
-                            >
-                              현재 단계 삭제
-                            </button>
-                            <button
-                              className="cell-menu-item"
-                              onClick={() => onAddStepAtIndex(idx)}
-                            >
-                              오른쪽에 단계 추가
-                            </button>
-                          </div>
-                        </MenuPortal>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {/* top padding */}
-          {start > 0 && (
-            <tr style={{ height: `${cumHeights[start]}px` }}>
-              <td
-                colSpan={steps.length + 1}
-                style={{ padding: 0, border: "none" }}
-              />
-            </tr>
-          )}
-
-          {/* visible rows */}
-          {visibleRows.map((row, rowIdx) => {
-            const realIndex = start + rowIdx;
-            // find pathKey in original allCombinations
-            const pathKey = String(
-              allCombinations.findIndex((r) =>
-                r.every((opt, i) => opt.id === row[i].id)
-              )
-            );
-            const isRowAllActive =
-              Array.isArray(pathActivations[pathKey]) &&
-              pathActivations[pathKey].every(Boolean);
-            const handleRowBulkToggle = () => {
-              const targetActive = !isRowAllActive;
-              row.forEach((_, colIdx) => {
-                onToggleOptionActive(pathKey, colIdx, targetActive);
-              });
-            };
-
-            return (
-              <tr
-                key={realIndex}
-                data-index={String(realIndex)}
-                className="data-row"
-                // className may be extended for highlight/selection
-              >
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: 6,
-                    background: "#f0f0f0",
-                    textAlign: "center",
-                  }}
-                >
-                  <button
-                    onClick={handleRowBulkToggle}
-                    className="btn-small"
-                    title={
-                      isRowAllActive
-                        ? "이 경로 전체 비활성화"
-                        : "이 경로 전체 활성화"
-                    }
-                  >
-                    {isRowAllActive
-                      ? `${realIndex + 1} 비활성화`
-                      : `${realIndex + 1} 활성화`}
-                  </button>
-                </td>
-
-                {row.map((option, colIdx) => {
-                  const isCellActive =
-                    pathActivations[pathKey]?.[colIdx] ?? true;
-                  const isRowHighlighted = selectedCell?.pathKey === pathKey;
-                  const isCellSelected =
-                    selectedCell?.pathKey === pathKey &&
-                    selectedCell?.colIdx === colIdx;
-
-                  // matchedOptionIndices for bulk toggles (use precomputed map)
-                  const matchedOptionIndices =
-                    optionToCombinationIndices.get(`${colIdx}:${option.id}`) ||
-                    [];
-                  const isOptionAllActive =
-                    matchedOptionIndices.length > 0 &&
-                    matchedOptionIndices.every(
-                      (i) => pathActivations[String(i)]?.[colIdx]
-                    );
-
-                  const handleOptionBulkToggle = () => {
-                    const targetActive = !isOptionAllActive;
-                    matchedOptionIndices.forEach((i) =>
-                      onToggleOptionActive(String(i), colIdx, targetActive)
-                    );
-                  };
-
-                  // previous and next option bulk toggles
-                  const handlePrevOptionBulkToggle = () => {
-                    if (colIdx === 0) return;
-                    const prevOptionId = row[colIdx - 1].id;
-                    // matchedPrevIndices: combinations where prev option id and current option id match
-                    const matchedPrevIndices = (
-                      optionToCombinationIndices.get(
-                        `${colIdx - 1}:${prevOptionId}`
-                      ) || []
-                    ).filter(
-                      (i) => allCombinations[i][colIdx].id === option.id
-                    );
-                    const targetActive =
-                      matchedPrevIndices.length > 0
-                        ? !matchedPrevIndices.every(
-                            (i) => pathActivations[String(i)]?.[colIdx]
-                          )
-                        : true;
-                    matchedPrevIndices.forEach((i) =>
-                      onToggleOptionActive(String(i), colIdx, targetActive)
-                    );
-                  };
-
-                  const handleNextOptionBulkToggle = () => {
-                    if (colIdx === steps.length - 1) return;
-                    const nextOptionId = row[colIdx + 1].id;
-                    const matchedNextIndices = (
-                      optionToCombinationIndices.get(
-                        `${colIdx + 1}:${nextOptionId}`
-                      ) || []
-                    ).filter(
-                      (i) => allCombinations[i][colIdx].id === option.id
-                    );
-                    const targetActive =
-                      matchedNextIndices.length > 0
-                        ? !matchedNextIndices.every(
-                            (i) => pathActivations[String(i)]?.[colIdx]
-                          )
-                        : true;
-                    matchedNextIndices.forEach((i) =>
-                      onToggleOptionActive(String(i), colIdx, targetActive)
-                    );
-                  };
-
-                  return (
-                    <td
-                      key={option.id}
-                      className={
-                        "workflow-cell" +
-                        (isRowHighlighted ? " highlight" : "") +
-                        (isCellSelected ? " selected" : "")
-                      }
-                      onClick={() => setSelectedCell({ pathKey, colIdx })}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ")
-                          setSelectedCell({ pathKey, colIdx });
-                      }}
-                      style={{ border: "1px solid #ddd", padding: 6 }}
-                    >
-                      <div
-                        className="cell-content"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <AutoResizeInput
-                          type="text"
-                          className="option-input"
-                          value={option.displayName}
-                          onChange={(e) =>
-                            onUpdateOptionName(
-                              steps[colIdx].id,
-                              option.id,
-                              e.target.value
-                            )
-                          }
-                          placeholder="선택지 이름"
-                          minWidth={60}
-                          maxWidth={300}
-                        />
-                        <label className="cell-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={isCellActive}
-                            onChange={(e) =>
-                              onToggleOptionActive(
-                                pathKey,
-                                colIdx,
-                                e.target.checked
-                              )
-                            }
-                            aria-label={`경로 ${pathKey} 단계 ${colIdx} 활성화`}
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed', // 고정 레이아웃으로 변경
+                minWidth: `${60 + (props.steps.length * 180)}px`
+              }}>
+                <colgroup>
+                  <col style={{ width: '60px' }} />
+                  {props.steps.map((_, idx) => (
+                    <col key={idx} style={{ width: '180px' }} />
+                  ))}
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style={{
+                      padding: 8,
+                      border: '1px solid #dee2e6',
+                      background: '#f8f9fa',
+                      width: 60,
+                      textAlign: 'center'
+                    }}>
+                      #
+                    </th>
+                    {props.steps.map((step, stepIdx) => (
+                      <th key={step.id} style={{
+                        padding: 8,
+                        border: '1px solid #dee2e6',
+                        background: '#f8f9fa',
+                        width: 180
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span>{stepIdx + 1}단계</span>
+                          <AutoResizeInput
+                            type="text"
+                            value={step.displayName}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => props.onUpdateStepName(step.id, e.target.value)}
+                            placeholder="단계 이름"
+                            style={{ fontSize: '0.9rem', flex: 1 }}
                           />
-                        </label>
-
-                        <span className="caret-wrap">
-                          <button
-                            className="cell-caret"
-                            aria-haspopup="true"
-                            aria-expanded={
-                              hoveredCell?.pathKey === pathKey &&
-                              hoveredCell?.colIdx === colIdx
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const alreadyOpen =
-                                hoveredCell &&
-                                hoveredCell.pathKey === pathKey &&
-                                hoveredCell.colIdx === colIdx;
-                              const newHover = alreadyOpen
-                                ? null
-                                : { pathKey, colIdx };
-                              setHoveredCell(newHover);
-                              setCellAnchorRect(
-                                newHover
-                                  ? (
-                                      e.currentTarget as HTMLElement
-                                    ).getBoundingClientRect()
-                                  : null
-                              );
-                            }}
-                            title="셀 메뉴"
-                          >
-                            ▾
-                          </button>
-
-                          {hoveredCell?.pathKey === pathKey &&
-                            hoveredCell?.colIdx === colIdx &&
-                            cellAnchorRect && (
-                              <MenuPortal anchorRect={cellAnchorRect}>
+                          <span className="header-caret-wrap">
+                            <button
+                              className="cell-caret header-caret"
+                              aria-haspopup="true"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setHeaderAnchorRect(rect);
+                                setOpenHeader(openHeader === stepIdx ? null : stepIdx);
+                              }}
+                              title="단계 메뉴"
+                            >
+                              ▾
+                            </button>
+                            {openHeader === stepIdx && headerAnchorRect && (
+                              <MenuPortal anchorRect={headerAnchorRect}>
                                 <div
-                                  className="cell-menu"
+                                  className="header-menu"
                                   role="menu"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <button
                                     className="cell-menu-item"
-                                    onClick={() =>
-                                      onDeleteOption(
-                                        steps[colIdx].id,
-                                        option.id
-                                      )
-                                    }
+                                    onClick={() => {
+                                      props.onAddOption(step.id);
+                                      setOpenHeader(null);
+                                    }}
                                   >
-                                    옵션 삭제
+                                    선택지 추가
                                   </button>
                                   <button
                                     className="cell-menu-item"
-                                    onClick={handleOptionBulkToggle}
+                                    onClick={() => {
+                                      // 이 단계의 모든 경로를 토글
+                                      const allActive = isStepAllActive(stepIdx);
+                                      Object.keys(props.pathActivations).forEach((pathKey) => {
+                                        props.onToggleOptionActive(pathKey, stepIdx, !allActive);
+                                      });
+                                      setOpenHeader(null);
+                                    }}
                                   >
-                                    {isOptionAllActive
-                                      ? "옵션 전체 비활성화"
-                                      : "옵션 전체 활성화"}
+                                    {isStepAllActive(stepIdx) ? "전체 비활성화" : "전체 활성화"}
                                   </button>
                                   <button
                                     className="cell-menu-item"
-                                    onClick={handlePrevOptionBulkToggle}
-                                    disabled={colIdx === 0}
+                                    onClick={() => {
+                                      props.onDeleteStep(step.id);
+                                      setOpenHeader(null);
+                                    }}
+                                    disabled={props.steps.length === 1}
                                   >
-                                    이전 옵션 기준 전체 토글
+                                    현재 단계 삭제
                                   </button>
                                   <button
                                     className="cell-menu-item"
-                                    onClick={handleNextOptionBulkToggle}
-                                    disabled={colIdx === steps.length - 1}
+                                    onClick={() => {
+                                      props.onAddStepAtIndex(stepIdx);
+                                      setOpenHeader(null);
+                                    }}
                                   >
-                                    다음 옵션 기준 전체 토글
+                                    오른쪽에 단계 추가
                                   </button>
                                 </div>
                               </MenuPortal>
                             )}
-                        </span>
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
+                          </span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+              </table>
+            </div>
 
-          {/* bottom padding */}
-          {end < total && (
-            <tr
+            {/* 가상화된 행들 */}
+            <div 
               style={{
-                height: `${Math.max(
-                  0,
-                  totalHeight - (cumHeights[end] || 0)
-                )}px`,
+                position: 'absolute',
+                top: virtualResult.offsetY + 40, // 헤더 높이만큼 오프셋
+                left: 0,
+                right: 0,
+                minWidth: `${60 + (props.steps.length * 180)}px` // 행들도 동일한 최소 너비
               }}
             >
-              <td
-                colSpan={steps.length + 1}
-                style={{ padding: 0, border: "none" }}
-              />
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed', // 고정 레이아웃으로 변경
+                minWidth: `${60 + (props.steps.length * 180)}px`
+              }}>
+                <colgroup>
+                  <col style={{ width: '60px' }} />
+                  {props.steps.map((_, idx) => (
+                    <col key={idx} style={{ width: '180px' }} />
+                  ))}
+                </colgroup>
+                <tbody>
+                  {virtualResult.visibleItems.map((index) => {
+                    const combination = filteredCombinations[index];
+                    if (!combination) return null;
+
+                    const isRowActive = props.pathActivations[String(index)]?.every(Boolean) ?? false;
+
+                    return (
+                      <tr
+                        key={index}
+                        style={{ 
+                          height: ITEM_HEIGHT,
+                          backgroundColor: selectedCell?.rowIndex === index ? '#e3f2fd' : 
+                                         hoveredCell?.rowIndex === index ? '#f5f5f5' : 'white'
+                        }}
+                        onMouseEnter={() => setHoveredCell({ rowIndex: index, colIndex: -1 })}
+                        onMouseLeave={() => setHoveredCell(null)}
+                      >
+                        {/* 행 번호 및 전체 토글 */}
+                        <td style={{
+                          padding: 4,
+                          border: '1px solid #dee2e6',
+                          textAlign: 'center',
+                          width: 60,
+                          background: '#f8f9fa'
+                        }}>
+                          <button
+                            onClick={createRowBulkToggleHandler(String(index), combination, isRowActive)}
+                            className={isRowActive ? "btn-muted small" : "btn-primary small"}
+                            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                          >
+                            {index + 1}
+                          </button>
+                        </td>
+
+                        {/* 각 단계의 옵션 셀 */}
+                        {combination.map((option, colIdx) => {
+                          const isCellActive = props.pathActivations[String(index)]?.[colIdx] ?? true;
+                          const isCellSelected = selectedCell?.rowIndex === index && selectedCell?.colIndex === colIdx;
+                          const isCellHovered = hoveredCell?.rowIndex === index && hoveredCell?.colIndex === colIdx;
+
+                          return (
+                            <td
+                              key={`${index}-${colIdx}`}
+                              style={{
+                                padding: 4,
+                                border: '1px solid #dee2e6',
+                                width: 180,
+                                backgroundColor: isCellSelected ? '#e3f2fd' : 
+                                               isCellHovered ? '#f0f0f0' : 'white'
+                              }}
+                              onMouseEnter={() => setHoveredCell({ rowIndex: index, colIndex: colIdx })}
+                              onClick={() => setSelectedCell({ rowIndex: index, colIndex: colIdx })}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <MemoizedStableWidthInput
+                                  value={option.displayName || option.name || ""}
+                                  onChange={(e) => props.onUpdateOptionName(props.steps[colIdx].id, option.id, e.target.value)}
+                                  placeholder="선택지 이름"
+                                  cellKey={`${index}:${colIdx}:${option.id}`}
+                                  className="option-input"
+                                />
+                                <label style={{ display: 'flex', alignItems: 'center' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isCellActive}
+                                    onChange={(e) => props.onToggleOptionActive(String(index), colIdx, e.target.checked)}
+                                  />
+                                </label>
+                                
+                                <span className="caret-wrap">
+                                  <button
+                                    className="cell-caret"
+                                    aria-haspopup="true"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setCellAnchorRect(rect);
+                                      setHoveredCell({ rowIndex: index, colIndex: colIdx });
+                                    }}
+                                    title="셀 메뉴"
+                                  >
+                                    ▾
+                                  </button>
+
+                                  {hoveredCell?.rowIndex === index && hoveredCell?.colIndex === colIdx && cellAnchorRect && (
+                                    <MenuPortal anchorRect={cellAnchorRect}>
+                                      <div
+                                        className="cell-menu"
+                                        role="menu"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <button
+                                          className="cell-menu-item"
+                                          onClick={() => {
+                                            const matchedOptionIndices = optionToCombinationIndices.get(`${colIdx}:${option.id}`) || [];
+                                            const isOptionAllActive = matchedOptionIndices.length > 0 &&
+                                              matchedOptionIndices.every((i) => props.pathActivations[String(i)]?.[colIdx]);
+                                            const targetActive = !isOptionAllActive;
+                                            matchedOptionIndices.forEach((i) =>
+                                              props.onToggleOptionActive(String(i), colIdx, targetActive)
+                                            );
+                                            setHoveredCell(null);
+                                          }}
+                                        >
+                                          {(() => {
+                                            const matchedOptionIndices = optionToCombinationIndices.get(`${colIdx}:${option.id}`) || [];
+                                            const isOptionAllActive = matchedOptionIndices.length > 0 &&
+                                              matchedOptionIndices.every((i) => props.pathActivations[String(i)]?.[colIdx]);
+                                            return isOptionAllActive ? "동일 옵션 모두 비활성화" : "동일 옵션 모두 활성화";
+                                          })()}
+                                        </button>
+                                        {colIdx > 0 && (
+                                          <button 
+                                            className="cell-menu-item" 
+                                            onClick={() => {
+                                              // 현재 셀의 이전 단계 옵션 ID
+                                              const prevOptionId = combination[colIdx - 1].id;
+                                              // 현재 셀의 옵션 ID
+                                              const currentOptionId = option.id;
+                                              
+                                              // 이전 옵션과 현재 옵션이 연결된 모든 조합의 인덱스 찾기
+                                              const connectedIndices: number[] = [];
+                                              allCombinations.forEach((comb, combIdx) => {
+                                                if (comb[colIdx - 1].id === prevOptionId && comb[colIdx].id === currentOptionId) {
+                                                  connectedIndices.push(combIdx);
+                                                }
+                                              });
+                                              
+                                              // 연결된 경로들의 현재 활성화 상태 확인
+                                              const isAllActive = connectedIndices.length > 0 &&
+                                                connectedIndices.every(i => props.pathActivations[String(i)]?.[colIdx]);
+                                              const targetActive = !isAllActive;
+                                              
+                                              // 연결된 모든 경로를 토글
+                                              connectedIndices.forEach(i =>
+                                                props.onToggleOptionActive(String(i), colIdx, targetActive)
+                                              );
+                                              setHoveredCell(null);
+                                            }}
+                                          >
+                                            이전 옵션과 연결된 모든 경로 토글
+                                          </button>
+                                        )}
+                                        {colIdx < props.steps.length - 1 && (
+                                          <button 
+                                            className="cell-menu-item" 
+                                            onClick={() => {
+                                              // 현재 셀의 다음 단계 옵션 ID
+                                              const nextOptionId = combination[colIdx + 1].id;
+                                              // 현재 셀의 옵션 ID
+                                              const currentOptionId = option.id;
+                                              
+                                              // 현재 옵션과 다음 옵션이 연결된 모든 조합의 인덱스 찾기
+                                              const connectedIndices: number[] = [];
+                                              allCombinations.forEach((comb, combIdx) => {
+                                                if (comb[colIdx].id === currentOptionId && comb[colIdx + 1].id === nextOptionId) {
+                                                  connectedIndices.push(combIdx);
+                                                }
+                                              });
+                                              
+                                              // 연결된 경로들의 현재 활성화 상태 확인
+                                              const isAllActive = connectedIndices.length > 0 &&
+                                                connectedIndices.every(i => props.pathActivations[String(i)]?.[colIdx]);
+                                              const targetActive = !isAllActive;
+                                              
+                                              // 연결된 모든 경로를 토글
+                                              connectedIndices.forEach(i =>
+                                                props.onToggleOptionActive(String(i), colIdx, targetActive)
+                                              );
+                                              setHoveredCell(null);
+                                            }}
+                                          >
+                                            다음 옵션과 연결된 모든 경로 토글
+                                          </button>
+                                        )}
+                                        <button
+                                          className="cell-menu-item"
+                                          onClick={() => {
+                                            props.onDeleteOption(props.steps[colIdx].id, option.id);
+                                            setHoveredCell(null);
+                                          }}
+                                          disabled={props.steps[colIdx].options.length === 1}
+                                        >
+                                          선택지 삭제
+                                        </button>
+                                      </div>
+                                    </MenuPortal>
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 

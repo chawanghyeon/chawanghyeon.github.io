@@ -1,12 +1,68 @@
 import React from "react";
 import { Step, PathActivationMap } from "../hooks/useStepManager";
+import TextDetailTooltip from "./ui/TextDetailTooltip";
+import { calculateStepCombinationStats } from "../lib/utils";
 
 interface TableVisualizationTabProps {
   steps: Step[];
   pathActivations?: PathActivationMap;
 }
 
-const BUFFER = 5; // 위/아래 여유 행
+// 가상화 스크롤 설정
+const ITEM_HEIGHT = 40; // 고정 행 높이
+const OVERSCAN = 5; // 버퍼 행 수
+
+// Utility function for combinations (moved outside component for better performance)
+function getAllCombinations<T>(arrays: T[][]): T[][] {
+  if (arrays.length === 0) return [[]];
+  const [first, ...rest] = arrays;
+  const restCombinations = getAllCombinations(rest);
+  return first.flatMap((item) =>
+    restCombinations.map((comb) => [item, ...comb])
+  );
+}
+
+// 가상화 스크롤 훅
+function useVirtualScroll(
+  itemCount: number,
+  itemHeight: number,
+  containerHeight: number,
+  scrollTop: number
+) {
+  return React.useMemo(() => {
+    if (itemCount === 0) {
+      return {
+        visibleStartIndex: 0,
+        visibleStopIndex: 0,
+        visibleItems: [],
+        totalHeight: 0,
+        offsetY: 0
+      };
+    }
+
+    const visibleStart = Math.floor(scrollTop / itemHeight);
+    const visibleEnd = Math.min(
+      itemCount - 1,
+      Math.floor((scrollTop + containerHeight) / itemHeight)
+    );
+
+    const startIndex = Math.max(0, visibleStart - OVERSCAN);
+    const stopIndex = Math.min(itemCount - 1, visibleEnd + OVERSCAN);
+
+    const visibleItems = [];
+    for (let i = startIndex; i <= stopIndex; i++) {
+      visibleItems.push(i);
+    }
+
+    return {
+      visibleStartIndex: startIndex,
+      visibleStopIndex: stopIndex,
+      visibleItems,
+      totalHeight: itemCount * itemHeight,
+      offsetY: startIndex * itemHeight
+    };
+  }, [itemCount, itemHeight, containerHeight, scrollTop]);
+}
 
 const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
   steps,
@@ -18,30 +74,38 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = React.useState(0);
-  const [rowHeights, setRowHeights] = React.useState<number[]>([]);
-  const [viewportHeight, setViewportHeight] = React.useState(400);
+  const [containerHeight, setContainerHeight] = React.useState(400);
+
+  // Immediate scroll handler for ultra-responsive scrolling
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
 
   React.useEffect(() => {
     setFilters(steps.map(() => null));
   }, [steps]);
 
+  // 컨테이너 높이 측정
   React.useEffect(() => {
-    if (containerRef.current) {
-      setViewportHeight(containerRef.current.clientHeight);
-    }
+    if (!containerRef.current) return;
+    
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(containerRef.current);
+    updateHeight();
+
+    return () => resizeObserver.disconnect();
   }, []);
 
-  function getAllCombinations<T>(arrays: T[][]): T[][] {
-    if (arrays.length === 0) return [[]];
-    const [first, ...rest] = arrays;
-    const restCombinations = getAllCombinations(rest);
-    return first.flatMap((item) =>
-      restCombinations.map((comb) => [item, ...comb])
-    );
-  }
-
   const stepNames = steps.map((step) => step.displayName || step.name);
-  const optionArrays = steps.map((step) =>
+  
+  // Memoize option arrays computation
+  const optionArrays = React.useMemo(() => steps.map((step) =>
     step.options.length > 0
       ? step.options
       : [
@@ -53,29 +117,51 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
             isActive: true,
           },
         ]
+  ), [steps]);
+
+  // Memoize all combinations calculation
+  const allCombinations = React.useMemo(() => 
+    getAllCombinations(optionArrays), 
+    [optionArrays]
   );
 
-  const filteredCombinations = getAllCombinations(optionArrays).filter((row) =>
-    filters.every((filter, idx) => filter === null || row[idx].id === filter)
+  // Memoize filtered combinations
+  const filteredCombinations = React.useMemo(() => 
+    allCombinations.filter((row) =>
+      filters.every((filter, idx) => filter === null || row[idx].id === filter)
+    ), 
+    [allCombinations, filters]
   );
 
-  const optionCounts = optionArrays.map((options, stepIdx) => {
-    const countMap: Record<string, number> = {};
-    getAllCombinations(optionArrays)
-      .filter((row) =>
-        filters.every(
-          (filter, idx) =>
-            idx === stepIdx || filter === null || row[idx].id === filter
+  // Memoize option counts calculation
+  const optionCounts = React.useMemo(() => 
+    optionArrays.map((options, stepIdx) => {
+      const countMap: Record<string, number> = {};
+      allCombinations
+        .filter((row) =>
+          filters.every(
+            (filter, idx) =>
+              idx === stepIdx || filter === null || row[idx].id === filter
+          )
         )
-      )
-      .forEach((row) => {
-        const opt = row[stepIdx];
-        countMap[opt.id] = (countMap[opt.id] || 0) + 1;
-      });
-    return countMap;
-  });
+        .forEach((row) => {
+          const opt = row[stepIdx];
+          countMap[opt.id] = (countMap[opt.id] || 0) + 1;
+        });
+      return countMap;
+    }), 
+    [optionArrays, allCombinations, filters]
+  );
 
-  const isRowActive = (
+  // 가상화 스크롤 계산
+  const virtualResult = useVirtualScroll(
+    filteredCombinations.length,
+    ITEM_HEIGHT,
+    containerHeight,
+    scrollTop
+  );
+
+  const isRowActive = React.useCallback((
     row: {
       id: string;
       name: string;
@@ -91,70 +177,128 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
       );
     }
     return row.every((option, idx) => !!option.isActive && steps[idx].isActive);
-  };
+  }, [pathActivations, steps]);
 
-  // --- 가상 스크롤 계산 ---
-  const total = filteredCombinations.length;
+  // Calculate scenario counts
+  const scenarioStats = React.useMemo(() => {
+    const total = filteredCombinations.length;
+    let enabled = 0;
+    let disabled = 0;
 
-  // 누적 높이 계산
-  const cumHeights = React.useMemo(() => {
-    const arr: number[] = [];
-    let sum = 0;
-    for (let i = 0; i < total; i++) {
-      const h = rowHeights[i] || 40; // 초기 추정 높이
-      arr.push(sum);
-      sum += h;
-    }
-    return arr;
-  }, [rowHeights, total]);
-
-  // start / end 인덱스 계산
-  let start = 0;
-  while (
-    start < total &&
-    cumHeights[start] + (rowHeights[start] || 40) < scrollTop
-  )
-    start++;
-  let end = start;
-  while (
-    end < total &&
-    cumHeights[end] < scrollTop + viewportHeight + BUFFER * 40
-  )
-    end++;
-
-  const visibleRows = filteredCombinations.slice(start, end);
-
-  // --- ResizeObserver로 동적 row 높이 측정 ---
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      setRowHeights((prev) => {
-        const newHeights = [...prev];
-        entries.forEach((entry) => {
-          const index = Number(entry.target.getAttribute("data-index"));
-          newHeights[index] = entry.contentRect.height;
-        });
-        return newHeights;
-      });
+    filteredCombinations.forEach((row, rowIndex) => {
+      const isActive = isRowActive(row, rowIndex);
+      if (isActive) {
+        enabled++;
+      } else {
+        disabled++;
+      }
     });
 
-    const rows = containerRef.current.querySelectorAll("tbody tr.data-row");
-    rows.forEach((row, idx) => {
-      row.setAttribute("data-index", String(start + idx));
-      observer.observe(row);
-    });
+    return { total, enabled, disabled };
+  }, [filteredCombinations, isRowActive]);
 
-    return () => observer.disconnect();
-  }, [visibleRows, start]);
+  // Calculate per-step statistics
+  const stepStats = React.useMemo(() => {
+    if (!pathActivations) return [];
+    return calculateStepCombinationStats(steps, pathActivations);
+  }, [steps, pathActivations]);
 
   return (
-    <div className="table-container" style={{ width: "100%" }}>
+    <div className="table-container" style={{ width: "100%", overflow: "hidden" }}>
       <h2>📊 표 시각화</h2>
+
+      {/* Scenario Statistics */}
+      <div style={{ 
+        marginBottom: 16, 
+        padding: 12, 
+        backgroundColor: "#f8f9fa", 
+        borderRadius: 8,
+        border: "1px solid #e9ecef"
+      }}>
+        <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#495057" }}>전체 시나리오 통계</h4>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 600, color: "#6c757d" }}>총계:</span>
+            <span style={{ fontWeight: 700, color: "#495057" }}>{scenarioStats.total}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 600, color: "#28a745" }}>활성화:</span>
+            <span style={{ fontWeight: 700, color: "#28a745" }}>{scenarioStats.enabled}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 600, color: "#dc3545" }}>비활성화:</span>
+            <span style={{ fontWeight: 700, color: "#dc3545" }}>{scenarioStats.disabled}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontWeight: 600, color: "#6c757d" }}>활성화율:</span>
+            <span style={{ fontWeight: 700, color: "#6c757d" }}>
+              {scenarioStats.total > 0 ? Math.round((scenarioStats.enabled / scenarioStats.total) * 100) : 0}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-Step Statistics */}
+      {stepStats.length > 0 && (
+        <div style={{ 
+          marginBottom: 16, 
+          padding: 12, 
+          backgroundColor: "#f8f9fa", 
+          borderRadius: 8,
+          border: "1px solid #e9ecef" 
+        }}>
+          <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#495057" }}>단계별 통계</h4>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {steps.map((step, stepIdx) => {
+              const stats = stepStats[stepIdx];
+              if (!stats) return null;
+              
+              return (
+                <div key={step.id} style={{ 
+                  padding: 8, 
+                  backgroundColor: "white", 
+                  borderRadius: 6,
+                  border: "1px solid #dee2e6",
+                  minWidth: 120
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: "0.8rem", marginBottom: 4, color: "#495057" }}>
+                    {step.displayName || step.name}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                      <span style={{ color: "#6c757d" }}>총계:</span>
+                      <span style={{ fontWeight: 600 }}>{stats.total}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                      <span style={{ color: "#28a745" }}>활성:</span>
+                      <span style={{ fontWeight: 600, color: "#28a745" }}>{stats.enabled}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                      <span style={{ color: "#dc3545" }}>비활성:</span>
+                      <span style={{ fontWeight: 600, color: "#dc3545" }}>{stats.disabled}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                      <span style={{ color: "#6c757d" }}>활성율:</span>
+                      <span style={{ fontWeight: 600, color: "#6c757d" }}>{stats.enabledPercentage}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 필터 UI */}
       <div
-        style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 12 }}
+        style={{ 
+          display: "flex", 
+          flexWrap: "wrap", 
+          gap: 12, 
+          marginBottom: 12,
+          overflowX: "auto",
+          minWidth: "100%"
+        }}
       >
         {steps.map((step, stepIdx) => (
           <div key={step.id} style={{ flex: "1 1 120px" }}>
@@ -297,83 +441,138 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
         </button>
       </div>
 
-      {/* 테이블 */}
+      {/* 가상화 테이블 */}
       <div
         className="excel-table-container"
         ref={containerRef}
-        style={{ height: "100vh", overflowY: "auto" }}
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        style={{ 
+          height: "60vh", 
+          overflow: "auto",
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          position: "relative"
+        }}
+        onScroll={handleScroll}
       >
-        <table className="excel-table" role="grid" style={{ width: "100%" }}>
-          <thead>
-            <tr>
-              {stepNames.map((name, idx) => (
-                <th key={idx}>{name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {/* 위쪽 패딩 */}
-            {start > 0 && (
-              <tr style={{ height: cumHeights[start] }}>
-                <td
-                  colSpan={stepNames.length}
-                  style={{ padding: 0, border: "none" }}
-                />
-              </tr>
-            )}
-
-            {visibleRows.map((row, idx) => {
-              const realIndex = start + idx;
-              const active = isRowActive(row, realIndex);
-              return (
-                <tr
-                  key={realIndex}
-                  className={active ? "data-row" : "data-row inactive-row"}
-                >
-                  {row.map((option, stepIdx) => {
-                    const cellActive =
-                      pathActivations &&
-                      Array.isArray(pathActivations[String(realIndex)])
-                        ? !!pathActivations[String(realIndex)][stepIdx]
-                        : !!(steps[stepIdx].isActive && option.isActive);
-                    return (
-                      <td
-                        key={option.id || stepIdx}
-                        className={
-                          !cellActive && option.name !== "-"
-                            ? "inactive-cell"
-                            : "data-cell"
-                        }
-                      >
-                        <div className="cell-inner">
-                          {option.displayName || option.name}
-                        </div>
-                      </td>
-                    );
-                  })}
+        {/* 전체 높이를 위한 컨테이너 */}
+        <div style={{ 
+          height: virtualResult.totalHeight, 
+          position: "relative",
+          minWidth: `${Math.max(600, stepNames.length * 200 + 100)}px`
+        }}>
+          {/* 헤더 (고정) */}
+          <div 
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              backgroundColor: "#f8f9fa",
+              borderBottom: "2px solid #dee2e6",
+              minWidth: `${Math.max(600, stepNames.length * 200 + 100)}px`
+            }}
+          >
+            <table 
+              className="excel-table" 
+              role="grid" 
+              style={{ 
+                width: "100%",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+                minWidth: `${Math.max(600, stepNames.length * 200 + 100)}px`
+              }}
+            >
+              <colgroup>
+                {stepNames.map((_, idx) => (
+                  <col key={idx} style={{ width: `${100 / stepNames.length}%` }} />
+                ))}
+              </colgroup>
+              <thead>
+                <tr>
+                  {stepNames.map((name, idx) => (
+                    <th key={idx} style={{
+                      padding: 8,
+                      border: "1px solid #dee2e6",
+                      background: "#f8f9fa"
+                    }}>
+                      {name}
+                    </th>
+                  ))}
                 </tr>
-              );
-            })}
+              </thead>
+            </table>
+          </div>
 
-            {/* 아래쪽 패딩 */}
-            {end < total && (
-              <tr
-                style={{
-                  height:
-                    cumHeights[total - 1] -
-                    cumHeights[end] +
-                    (rowHeights[total - 1] || 40),
-                }}
-              >
-                <td
-                  colSpan={stepNames.length}
-                  style={{ padding: 0, border: "none" }}
-                />
-              </tr>
-            )}
-          </tbody>
-        </table>
+          {/* 가상화된 행들 */}
+          <div 
+            style={{
+              position: "absolute",
+              top: virtualResult.offsetY + 40, // 헤더 높이만큼 오프셋
+              left: 0,
+              right: 0,
+              minWidth: `${Math.max(600, stepNames.length * 200 + 100)}px`
+            }}
+          >
+            <table 
+              className="excel-table" 
+              role="grid" 
+              style={{ 
+                width: "100%",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+                minWidth: `${Math.max(600, stepNames.length * 200 + 100)}px`
+              }}
+            >
+              <colgroup>
+                {stepNames.map((_, idx) => (
+                  <col key={idx} style={{ width: `${100 / stepNames.length}%` }} />
+                ))}
+              </colgroup>
+              <tbody>
+                {virtualResult.visibleItems.map((index) => {
+                  const row = filteredCombinations[index];
+                  if (!row) return null;
+
+                  const active = isRowActive(row, index);
+                  return (
+                    <tr
+                      key={index}
+                      className={active ? "data-row" : "data-row inactive-row"}
+                      style={{ height: ITEM_HEIGHT }}
+                    >
+                      {row.map((option, stepIdx) => {
+                        const cellActive =
+                          pathActivations &&
+                          Array.isArray(pathActivations[String(index)])
+                            ? !!pathActivations[String(index)][stepIdx]
+                            : !!(steps[stepIdx].isActive && option.isActive);
+                        return (
+                          <td
+                            key={option.id || stepIdx}
+                            className={
+                              !cellActive && option.name !== "-"
+                                ? "inactive-cell"
+                                : "data-cell"
+                            }
+                            style={{
+                              padding: 4,
+                              border: "1px solid #dee2e6"
+                            }}
+                          >
+                            <TextDetailTooltip text={option.displayName || option.name}>
+                              <div className="cell-inner">
+                                {option.displayName || option.name}
+                              </div>
+                            </TextDetailTooltip>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

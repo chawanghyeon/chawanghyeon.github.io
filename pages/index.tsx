@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react'
 import Head from 'next/head'
-import { useStepManager } from '../hooks/useStepManager'
+import { useSheetManager } from '../hooks/useSheetManager'
 import AppHeader from '../components/AppHeader'
+import SheetTabs from '../components/SheetTabs'
 import WorkflowDesignTab from '../components/WorkflowDesignTab'
 import TableVisualizationTab from '../components/TableVisualizationTab'
-import DataManagementTab from '../components/DataTab'
+import EnhancedDataTab from '../components/EnhancedDataTab'
 
 const HomePage: React.FC = () => {
   const {
@@ -12,6 +13,13 @@ const HomePage: React.FC = () => {
     optionActivations,
     pathActivations,
     currentTab,
+    sheets,
+    activeSheetId,
+    createSheet,
+    renameSheet,
+    copySheet,
+    deleteSheet,
+    switchToSheet,
     addRootStep,
     updateStepName,
     updateOptionName,
@@ -21,8 +29,12 @@ const HomePage: React.FC = () => {
     toggleOptionActive,
     toggleOptionNextStepActive,
     setCurrentTab: switchTab,
-    addStepAtIndex
-  } = useStepManager()
+    addStepAtIndex,
+    saveError,
+    clearSaveError
+  } = useSheetManager()
+
+  const activeSheet = sheets.find(sheet => sheet.id === activeSheetId)
 
   // Add keyboard shortcut for adding root step
   useEffect(() => {
@@ -64,8 +76,11 @@ const HomePage: React.FC = () => {
         )
       case 'data':
         return (
-          <DataManagementTab
-            steps={steps}
+          <EnhancedDataTab
+            currentSheet={activeSheet}
+            allSheets={sheets}
+            saveError={saveError}
+            onClearSaveError={clearSaveError}
           />
         )
       default:
@@ -84,6 +99,16 @@ const HomePage: React.FC = () => {
 
       <div className="app-container">
         <AppHeader currentTab={currentTab} onTabChange={switchTab} />
+        
+        <SheetTabs
+          sheets={sheets}
+          activeSheetId={activeSheetId}
+          onCreateSheet={createSheet}
+          onRenameSheet={renameSheet}
+          onCopySheet={copySheet}
+          onDeleteSheet={deleteSheet}
+          onSwitchSheet={switchToSheet}
+        />
         
         <div className={`tab-content active`}>
           {renderTabContent()}

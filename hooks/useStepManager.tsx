@@ -29,24 +29,27 @@ export type OptionActivationMap = {
 
 export type TabType = 'design' | 'table' | 'data'
 
+let idCounter = 0;
+
 function generateId(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+  // For new items created by user interaction (client-side only)
+  return `${prefix}_${Date.now()}_${++idCounter}`
 }
 
 export const useStepManager = () => {
-  const STORAGE_KEY = "chawanghyeon_workflow_v1";
+  const STORAGE_KEY = "chawanghyeon_workflow_v2"; // Changed version to reset localStorage
   const saveTimer = React.useRef<number | null>(null);
 
   function normalizeSteps(rawSteps: any[]): Step[] {
     if (!Array.isArray(rawSteps)) return [];
-    return rawSteps.map((s) => ({
-      id: s.id ?? generateId("step"),
-      name: s.name ?? "",
+    return rawSteps.map((s, stepIndex) => ({
+      id: s.id ?? `step_${stepIndex + 1}`, // Use deterministic index-based ID
+      name: `${stepIndex + 1}단계`, // Always assign correct step number based on index
       displayName: s.displayName ?? "",
       isActive: s.isActive ?? true,
-      options: (s.options || []).map((o: any, i: number) => ({
-        id: o.id ?? generateId("option"),
-        name: o.name ?? `옵션${i + 1}`,
+      options: (s.options || []).map((o: any, optionIndex: number) => ({
+        id: o.id ?? `option_${stepIndex}_${optionIndex}`, // Use deterministic index-based ID
+        name: o.name ?? `옵션${optionIndex + 1}`,
         displayName: o.displayName ?? "",
         isActive: o.isActive ?? true,
       })),
@@ -80,12 +83,12 @@ export const useStepManager = () => {
   }, []);
   const [steps, setSteps] = useState<Step[]>([
     {
-      id: generateId("step"),
+      id: "step_1", // Use static ID for initial state to avoid hydration issues
       name: "1단계",
       displayName: "",
       options: [
         {
-          id: generateId("option"),
+          id: "option_1", // Use static ID for initial state to avoid hydration issues
           name: "옵션1",
           displayName: "",
           isActive: true,
@@ -196,7 +199,9 @@ export const useStepManager = () => {
         }
         return newMap;
       });
-      return [...prev, newStep];
+      const newSteps = [...prev, newStep];
+      // 모든 단계의 이름을 올바르게 업데이트
+      return newSteps.map((step, i) => ({ ...step, name: `${i + 1}단계` }));
     });
   }, [setOptionActivations]);
 
@@ -229,7 +234,11 @@ export const useStepManager = () => {
     []
   );
   const deleteStep = useCallback((stepId: string) => {
-    setSteps((prev) => prev.filter((step) => step.id !== stepId));
+    setSteps((prev) => {
+      const filteredSteps = prev.filter((step) => step.id !== stepId);
+      // 삭제 후 단계 번호를 다시 할당
+      return filteredSteps.map((step, i) => ({ ...step, name: `${i + 1}단계` }));
+    });
   }, []);
   // 옵션 추가: 모든 단계의 해당 옵션 리스트에 동기화, 활성화 맵도 동기화
   const addOption = useCallback(
