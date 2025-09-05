@@ -13,7 +13,7 @@ export const MAX_INPUT_WIDTH = 300
 
 // Tab configuration
 export const TABS = [
-  { id: 'design', label: '📋 워크플로우 설계' },
+  { id: 'button', label: '🔘 워크플로우' },
   { id: 'table', label: '📊 표 시각화' },
   { id: 'data', label: '💾 데이터 관리' }
 ] as const

@@ -1,17 +1,18 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import Head from 'next/head'
 import { useSheetManager } from '../hooks/useSheetManager'
 import AppHeader from '../components/AppHeader'
 import SheetTabs from '../components/SheetTabs'
-import WorkflowDesignTab from '../components/WorkflowDesignTab'
+import WorkflowButtonTab from '../components/WorkflowButtonTab'
 import TableVisualizationTab from '../components/TableVisualizationTab'
 import EnhancedDataTab from '../components/EnhancedDataTab'
+import UserGuideTab from '../components/UserGuideTab'
 
 const HomePage: React.FC = () => {
   const {
     steps,
-    optionActivations,
     pathActivations,
+    constraints,
     currentTab,
     sheets,
     activeSheetId,
@@ -20,58 +21,50 @@ const HomePage: React.FC = () => {
     copySheet,
     deleteSheet,
     switchToSheet,
-    addRootStep,
+    addStepAtIndex,
     updateStepName,
-    updateOptionName,
     deleteStep,
     addOption,
+    updateOptionName,
     deleteOption,
     toggleOptionActive,
-    toggleOptionNextStepActive,
     setCurrentTab: switchTab,
-    addStepAtIndex,
+    addConstraint,
+    updateConstraint,
+    deleteConstraint,
+    adjustConstraintIndices,
     saveError,
     clearSaveError
   } = useSheetManager()
 
   const activeSheet = sheets.find(sheet => sheet.id === activeSheetId)
 
-  // Add keyboard shortcut for adding root step
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && e.ctrlKey) {
-        addRootStep()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [addRootStep])
-
   const renderTabContent = () => {
     switch (currentTab) {
-      case 'design':
+      case 'button':
         return (
-          <WorkflowDesignTab
+          <WorkflowButtonTab
             steps={steps}
-            optionActivations={optionActivations}
-            pathActivations={pathActivations}
-            onAddRootStep={addRootStep}
+            constraints={constraints}
+            onAddConstraint={addConstraint}
+            onUpdateConstraint={updateConstraint}
+            onDeleteConstraint={deleteConstraint}
+            onAddStepAtIndex={addStepAtIndex}
             onUpdateStepName={updateStepName}
-            onUpdateOptionName={updateOptionName}
             onDeleteStep={deleteStep}
             onAddOption={addOption}
+            onUpdateOptionName={updateOptionName}
             onDeleteOption={deleteOption}
-            onToggleOptionActive={toggleOptionActive}
-            onToggleOptionNextStepActive={toggleOptionNextStepActive}
-            onAddStepAtIndex={addStepAtIndex}
+            onAdjustConstraintIndices={adjustConstraintIndices}
           />
         )
       case 'table':
         return (
           <TableVisualizationTab
             steps={steps}
+            constraints={constraints}
             pathActivations={pathActivations}
+            onToggleOptionActive={toggleOptionActive}
           />
         )
       case 'data':
@@ -83,6 +76,8 @@ const HomePage: React.FC = () => {
             onClearSaveError={clearSaveError}
           />
         )
+      case 'guide':
+        return <UserGuideTab />
       default:
         return null
     }

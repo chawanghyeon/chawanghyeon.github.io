@@ -1,5 +1,5 @@
 import React from 'react'
-import { TabType } from '../hooks/useStepManager'
+import { TabType } from '../lib/types'
 
 interface AppHeaderProps {
   currentTab: TabType
@@ -8,9 +8,10 @@ interface AppHeaderProps {
 
 const AppHeader: React.FC<AppHeaderProps> = ({ currentTab, onTabChange }) => {
   const tabs = [
-    { id: 'design' as TabType, label: '📋 워크플로우 설계' },
+    { id: 'button' as TabType, label: '🔘 워크플로우' },
     { id: 'table' as TabType, label: '📊 표 시각화' },
-    { id: 'data' as TabType, label: '💾 데이터 관리' }
+    { id: 'data' as TabType, label: '💾 데이터 관리' },
+    { id: 'guide' as TabType, label: '📚 사용자 가이드' }
   ]
 
   return (

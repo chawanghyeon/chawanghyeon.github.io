@@ -77,7 +77,12 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
         break
       case 'delete':
         if (sheets.length > 1) {
-          onDeleteSheet(contextMenu.sheetId)
+          const sheet = sheets.find(s => s.id === contextMenu.sheetId)
+          if (sheet) {
+            if (window.confirm(`"${sheet.name}" 시트를 정말 삭제하시겠습니까?`)) {
+              onDeleteSheet(contextMenu.sheetId)
+            }
+          }
         }
         break
     }

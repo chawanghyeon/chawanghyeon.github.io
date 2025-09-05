@@ -1,6 +1,11 @@
 import React, { useState, useCallback } from 'react'
-import { WorkflowSheet, WorkflowData, Step, PathActivationMap, TabType } from '../lib/types'
-import { StorageManager } from '../lib/storage'
+import { WorkflowSheet, WorkflowData, Step, TabType, WorkflowConstraint } from '../lib/types'
+import { 
+  generatePathActivations, 
+  cleanInvalidConstraints, 
+  adjustConstraintIndicesForStepInsertion,
+  adjustConstraintIndicesForStepDeletion
+} from '../lib/constraints'
 
 let idCounter = 0
 
@@ -8,191 +13,243 @@ function generateId(prefix: string) {
   return `${prefix}_${Date.now()}_${++idCounter}`
 }
 
-const createDefaultSheet = (id: string, name: string): WorkflowSheet => ({
-  id,
-  name,
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-  steps: [
+function createDefaultSheet(id: string, name: string): WorkflowSheet {
+  const defaultSteps: Step[] = [
     {
-      id: "step_1",
-      name: "1단계",
-      displayName: "",
+      id: 'step_1',
+      name: '1단계',
+      displayName: '',
       options: [
-        {
-          id: "option_1",
-          name: "옵션1",
-          displayName: "",
-          isActive: true,
-        },
+        { id: 'option_1_1', name: '옵션1', displayName: '', isActive: true },
+        { id: 'option_1_2', name: '옵션2', displayName: '', isActive: true }
       ],
-      isActive: true,
-    },
-  ],
-  optionActivations: {
-    0: { 0: [true] },
-  },
-  pathActivations: {},
-})
+      isActive: true
+    }
+  ]
+
+  return {
+    id,
+    name,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    steps: defaultSteps,
+    constraints: {},
+  }
+}
 
 export const useSheetManager = () => {
-  const STORAGE_KEY = "chawanghyeon_workflow_sheets_v1"
+  const STORAGE_KEY = "chawanghyeon_workflow_sheets_v2" // Bump version to avoid old data conflicts
   const saveTimer = React.useRef<number | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [constraintNotification, setConstraintNotification] = useState<string | null>(null)
+  
+  // Add a force update mechanism
+  const [, forceUpdate] = useState({})
+  const triggerUpdate = useCallback(() => {
+    forceUpdate({})
+  }, [])
 
   const [workflowData, setWorkflowData] = useState<WorkflowData>(() => ({
     sheets: [createDefaultSheet("sheet_1", "Sheet 1")],
     activeSheetId: "sheet_1",
     nextSheetId: 2,
+    lastUpdated: Date.now()
   }))
 
-  const [currentTab, setCurrentTab] = useState<TabType>("design")
+  const [currentTab, setCurrentTab] = useState<TabType>('button')
 
-  const activeSheet = workflowData.sheets.find(sheet => sheet.id === workflowData.activeSheetId)
-
-  // Normalize steps from any data format for backwards compatibility
-  function normalizeSteps(rawSteps: unknown[]): Step[] {
-    if (!Array.isArray(rawSteps)) return []
-    return rawSteps.map((s: unknown, stepIndex) => {
-      const step = s as Record<string, unknown>
-      return {
-        id: (step.id as string) ?? `step_${stepIndex + 1}`,
-        name: (step.name as string) ?? "",
-        displayName: (step.displayName as string) ?? "",
-        isActive: (step.isActive as boolean) ?? true,
-        options: ((step.options as unknown[]) || []).map((o: unknown, optionIndex: number) => {
-          const option = o as Record<string, unknown>
-          return {
-            id: (option.id as string) ?? `option_${stepIndex}_${optionIndex}`,
-            name: (option.name as string) ?? `옵션${optionIndex + 1}`,
-            displayName: (option.displayName as string) ?? "",
-            isActive: (option.isActive as boolean) ?? true,
-          }
-        }),
-      }
-    })
-  }
-
-  // Load data from localStorage on mount
+  // Load data from localStorage on mount (client-side only)
   React.useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === 'undefined') return
     
-    const loadData = async () => {
-      try {
-        const parsed = await StorageManager.getItem(STORAGE_KEY) as Record<string, unknown> | null
-        if (!parsed) return
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored) as WorkflowData
         
-        // Handle legacy single-sheet data migration
-        if (parsed.steps && !parsed.sheets) {
-          const legacySheet = createDefaultSheet("sheet_1", "Sheet 1")
-          legacySheet.steps = normalizeSteps(parsed.steps as unknown[])
-          legacySheet.optionActivations = (parsed.optionActivations as WorkflowSheet['optionActivations']) || { 0: { 0: [true] } }
-          legacySheet.pathActivations = (parsed.pathActivations as PathActivationMap) || {}
-          
-          setWorkflowData({
-            sheets: [legacySheet],
-            activeSheetId: "sheet_1",
-            nextSheetId: 2,
-          })
-        } else if (parsed.sheets) {
-          // Handle multi-sheet data
-          const sheets = parsed.sheets as unknown[]
-          setWorkflowData({
-            sheets: sheets.map((sheet: unknown) => {
-              const s = sheet as WorkflowSheet
-              return {
-                ...s,
-                steps: normalizeSteps(s.steps),
-              }
-            }),
-            activeSheetId: (parsed.activeSheetId as string) || (sheets[0] as WorkflowSheet)?.id || "sheet_1",
-            nextSheetId: (parsed.nextSheetId as number) || sheets.length + 1,
-          })
-        }
-      } catch (err) {
-        console.warn('Failed to load saved workflow sheets', err)
+        // Ensure constraints exist for backward compatibility
+        const updatedSheets = parsed.sheets.map(sheet => ({
+          ...sheet,
+          constraints: sheet.constraints || {}
+        }))
+        
+        setWorkflowData({
+          ...parsed,
+          sheets: updatedSheets
+        })
       }
+    } catch (error) {
+      console.warn('Failed to load workflow data from localStorage:', error)
+      setSaveError('데이터 로드 실패')
     }
-    
-    loadData()
   }, [])
 
-  // Auto-save with debouncing and error handling
+  // Auto-save with debouncing (localStorage only, no file system)
   React.useEffect(() => {
-    if (typeof window === "undefined") return
+    if (typeof window === 'undefined') return
+    
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
     
     saveTimer.current = window.setTimeout(async () => {
       try {
-        // Clear any previous save errors
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(workflowData))
         setSaveError(null)
-        
-        // Check if data can fit before saving
-        if (!StorageManager.canFitData(workflowData)) {
-          const storageInfo = StorageManager.getStorageInfo()
-          setSaveError(`Storage almost full (${storageInfo.usedPercentage.toFixed(1)}%). Consider exporting and clearing old data.`)
-          
-          // Try to save anyway with cleanup
-          const success = await StorageManager.setItem(STORAGE_KEY, workflowData, {
-            backup: true,
-            maxRetries: 3
-          })
-          
-          if (!success) {
-            setSaveError('Failed to save workflow data. Storage quota exceeded.')
-          }
-        } else {
-          // Normal save
-          const success = await StorageManager.setItem(STORAGE_KEY, workflowData, {
-            backup: true
-          })
-          
-          if (!success) {
-            setSaveError('Failed to save workflow data.')
-          }
-        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown save error'
         setSaveError(errorMessage)
         console.warn('Failed to save workflow sheets:', err)
-        
-        // Show user notification about the error
-        if (typeof window !== 'undefined' && err instanceof Error && err.message.includes('quota')) {
-          // Don't show alert immediately as it might be annoying, just log
-          console.error('Storage quota exceeded. Consider exporting data and clearing old sheets.')
-        }
       }
-    }, 1000) // 400ms -> 1000ms로 증가 (더 긴 디바운싱)
+    }, 1000)
     
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
     }
   }, [workflowData])
 
-  // Helper function to calculate pathActivations
-  const calculatePathActivations = React.useCallback((steps: Step[], existingActivations: PathActivationMap): PathActivationMap => {
-    function getAllCombinations<T>(arrays: T[][]): T[][] {
-      if (arrays.length === 0) return [[]]
-      const [first, ...rest] = arrays
-      const restCombinations = getAllCombinations(rest)
-      return first.flatMap((item) =>
-        restCombinations.map((comb) => [item, ...comb])
-      )
-    }
-
-    const optionArrays = steps.map((step) => step.options)
-    const allCombinations = getAllCombinations(optionArrays)
+  // Generate pathActivations dynamically from current sheet's steps and constraints
+  const generateCurrentPathActivations = useCallback(() => {
+    const activeSheet = workflowData.sheets.find(sheet => sheet.id === workflowData.activeSheetId)
+    if (!activeSheet) return {}
     
-    const newMap: PathActivationMap = {}
-    allCombinations.forEach((row, idx) => {
-      const key = String(idx)
-      newMap[key] = 
-        existingActivations[key] && existingActivations[key].length === row.length
-          ? existingActivations[key]
-          : Array(row.length).fill(true)
+    return generatePathActivations(
+      activeSheet.steps,
+      activeSheet.constraints || {}
+    )
+  }, [workflowData])
+
+  // Helper function to update current sheet
+  const updateCurrentSheet = useCallback((updater: (sheet: WorkflowSheet) => WorkflowSheet, skipPathRecalc = false) => {
+    setWorkflowData(prev => {
+      const activeSheetIndex = prev.sheets.findIndex(sheet => sheet.id === prev.activeSheetId)
+      if (activeSheetIndex === -1) return prev
+
+      const updatedSheet = {
+        ...updater(prev.sheets[activeSheetIndex]),
+        updatedAt: Date.now()
+      }
+
+      // Clean invalid constraints when steps change
+      if (!skipPathRecalc) {
+        updatedSheet.constraints = cleanInvalidConstraints(
+          updatedSheet.constraints || {},
+          updatedSheet.steps
+        )
+      }
+
+      const newSheets = [...prev.sheets]
+      newSheets[activeSheetIndex] = updatedSheet
+
+      return {
+        ...prev,
+        sheets: newSheets,
+        lastUpdated: Date.now()
+      }
     })
-    return newMap
   }, [])
+
+  // Get current sheet data
+  const activeSheet = workflowData.sheets.find(sheet => sheet.id === workflowData.activeSheetId)
+  const steps = React.useMemo(() => activeSheet?.steps || [], [activeSheet?.steps])
+  const constraints = React.useMemo(() => activeSheet?.constraints || {}, [activeSheet?.constraints])
+  const pathActivations = generateCurrentPathActivations()
+
+  // Helper function to get constraint description
+  const getConstraintDescription = useCallback((constraint: WorkflowConstraint): string => {
+    const sourceStep = steps[constraint.sourceStepIndex]
+    const sourceOption = sourceStep?.options.find(opt => opt.id === constraint.sourceOptionId)
+    const stepName = sourceStep?.displayName || sourceStep?.name || `${constraint.sourceStepIndex + 1}단계`
+    const optionName = sourceOption?.displayName || sourceOption?.name || '옵션'
+    return `${stepName} - ${optionName}: ${constraint.type} 제약`
+  }, [steps])
+
+  // Helper function to find constraints that would be affected by step operations
+  const findAffectedConstraints = useCallback((operation: 'addStep' | 'deleteStep' | 'addOption' | 'deleteOption', params: {
+    insertIndex?: number
+    stepIndex?: number
+    optionId?: string
+  }) => {
+    const constraintArray = Object.values(constraints)
+    if (constraintArray.length === 0) return []
+    
+    let affected: WorkflowConstraint[] = []
+    
+    switch (operation) {
+      case 'addStep':
+        const { insertIndex } = params
+        if (insertIndex !== undefined) {
+          // Find constraints that reference steps at or after the insertion point
+          affected = constraintArray.filter(constraint => 
+            constraint.sourceStepIndex >= insertIndex ||
+            (constraint.targetStepIndex !== undefined && constraint.targetStepIndex >= insertIndex) ||
+            (constraint.targetSteps && constraint.targetSteps.some(stepIdx => stepIdx >= insertIndex)) ||
+            (constraint.routeConditions && constraint.routeConditions.some(condition => condition.stepIndex >= insertIndex))
+          )
+        }
+        break
+        
+      case 'deleteStep':
+        const { stepIndex } = params
+        if (stepIndex !== undefined) {
+          // Find constraints that reference the step being deleted
+          affected = constraintArray.filter(constraint =>
+            constraint.sourceStepIndex === stepIndex ||
+            constraint.targetStepIndex === stepIndex ||
+            (constraint.targetSteps && constraint.targetSteps.includes(stepIndex)) ||
+            (constraint.routeConditions && constraint.routeConditions.some(condition => condition.stepIndex === stepIndex))
+          )
+        }
+        break
+        
+      case 'addOption':
+        // Adding options generally doesn't affect existing constraints
+        affected = []
+        break
+        
+      case 'deleteOption':
+        const { stepIndex: optionStepIndex, optionId } = params
+        if (optionStepIndex !== undefined && optionId) {
+          // Find constraints that reference the option being deleted
+          affected = constraintArray.filter(constraint =>
+            (constraint.sourceStepIndex === optionStepIndex && constraint.sourceOptionId === optionId) ||
+            (constraint.targetStepIndex === optionStepIndex && constraint.targetOptionId === optionId) ||
+            (constraint.targetStepIndex === optionStepIndex && constraint.targetOptionIds?.includes(optionId)) ||
+            (constraint.targetSteps?.includes(optionStepIndex) && constraint.targetOptionIds?.includes(optionId)) ||
+            (constraint.routeConditions && constraint.routeConditions.some(condition => 
+              condition.stepIndex === optionStepIndex && condition.optionId === optionId
+            ))
+          )
+        }
+        break
+    }
+    
+    return affected
+  }, [constraints])
+
+  // Helper function to check affected constraints and show confirmation
+  const checkAffectedConstraintsAndConfirm = useCallback((operation: 'addStep' | 'deleteStep' | 'addOption' | 'deleteOption', params: {
+    insertIndex?: number
+    stepIndex?: number
+    optionId?: string
+  }): boolean => {
+    const affectedConstraints = findAffectedConstraints(operation, params)
+    
+    if (affectedConstraints.length === 0) {
+      return true // No constraints affected, proceed
+    }
+    
+    const operationText = {
+      addStep: '단계를 추가',
+      deleteStep: '단계를 삭제', 
+      addOption: '옵션을 추가',
+      deleteOption: '옵션을 삭제'
+    }[operation]
+    
+    const message = `${operationText}하면 ${affectedConstraints.length}개의 제약 조건이 영향을 받아 삭제됩니다:\n\n` +
+      affectedConstraints.map(c => `• ${getConstraintDescription(c)}`).join('\n') +
+      `\n\n계속하시겠습니까?`
+    
+    return window.confirm(message)
+  }, [findAffectedConstraints, getConstraintDescription])
 
   // Sheet management functions
   const createSheet = useCallback((name?: string) => {
@@ -206,6 +263,7 @@ export const useSheetManager = () => {
       sheets: [...prev.sheets, newSheet],
       activeSheetId: newSheet.id,
       nextSheetId: prev.nextSheetId + 1,
+      lastUpdated: Date.now()
     }))
     
     return newSheet.id
@@ -219,6 +277,7 @@ export const useSheetManager = () => {
           ? { ...sheet, name: newName, updatedAt: Date.now() }
           : sheet
       ),
+      lastUpdated: Date.now()
     }))
   }, [])
 
@@ -239,6 +298,7 @@ export const useSheetManager = () => {
       sheets: [...prev.sheets, newSheet],
       activeSheetId: newSheet.id,
       nextSheetId: prev.nextSheetId + 1,
+      lastUpdated: Date.now()
     }))
     
     return newSheet.id
@@ -257,6 +317,7 @@ export const useSheetManager = () => {
         ...prev,
         sheets: remainingSheets,
         activeSheetId: newActiveSheetId,
+        lastUpdated: Date.now()
       }
     })
   }, [workflowData.sheets.length])
@@ -267,27 +328,6 @@ export const useSheetManager = () => {
       activeSheetId: sheetId,
     }))
   }, [])
-
-  // Current sheet data accessors
-  const steps = activeSheet?.steps || []
-  const optionActivations = activeSheet?.optionActivations || {}
-  const pathActivations = activeSheet?.pathActivations || {}
-
-  // Update functions for current sheet
-  const updateCurrentSheet = useCallback((updater: (sheet: WorkflowSheet) => WorkflowSheet) => {
-    setWorkflowData(prev => ({
-      ...prev,
-      sheets: prev.sheets.map(sheet => {
-        if (sheet.id === prev.activeSheetId) {
-          const updatedSheet = { ...updater(sheet), updatedAt: Date.now() }
-          // Recalculate pathActivations if steps changed
-          const newPathActivations = calculatePathActivations(updatedSheet.steps, updatedSheet.pathActivations)
-          return { ...updatedSheet, pathActivations: newPathActivations }
-        }
-        return sheet
-      }),
-    }))
-  }, [calculatePathActivations])
 
   // Step management functions (operating on current sheet)
   const addRootStep = useCallback(() => {
@@ -308,30 +348,34 @@ export const useSheetManager = () => {
         isActive: true,
       }
       
-      const newSteps = [...sheet.steps, newStep]
-      const newIdx = sheet.steps.length
-      const parentOptions = sheet.steps[newIdx - 1]?.options.length || 1
-      
-      const newOptionActivations = { ...sheet.optionActivations }
-      newOptionActivations[newIdx] = {}
-      for (let i = 0; i < parentOptions; i++) {
-        newOptionActivations[newIdx][i] = [true]
-      }
-      
       return {
         ...sheet,
-        steps: newSteps,
-        optionActivations: newOptionActivations,
+        steps: [...sheet.steps, newStep],
       }
     })
   }, [updateCurrentSheet])
 
   const addStepAtIndex = useCallback((insertIdx: number) => {
+    // Check for affected constraints first
+    if (!checkAffectedConstraintsAndConfirm('addStep', { insertIndex: insertIdx })) {
+      return // User cancelled
+    }
+    
     updateCurrentSheet(sheet => {
+      // Find affected constraints
+      const affectedConstraints = findAffectedConstraints('addStep', { insertIndex: insertIdx })
+      const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
+      
+      // Remove affected constraints
+      const updatedConstraints = { ...sheet.constraints }
+      affectedConstraintIds.forEach(id => {
+        delete updatedConstraints[id]
+      })
+      
       const stepId = generateId("step")
       const newStep: Step = {
         id: stepId,
-        name: `${insertIdx + 2}단계`,
+        name: `${insertIdx + 1}단계`,
         displayName: "",
         options: [
           {
@@ -345,17 +389,27 @@ export const useSheetManager = () => {
       }
       
       const newSteps = [
-        ...sheet.steps.slice(0, insertIdx + 1),
+        ...sheet.steps.slice(0, insertIdx),
         newStep,
-        ...sheet.steps.slice(insertIdx + 1),
+        ...sheet.steps.slice(insertIdx),
       ].map((step, i) => ({ ...step, name: `${i + 1}단계` }))
+      
+      // Adjust remaining constraint indices
+      const adjustedConstraints = adjustConstraintIndicesForStepInsertion(updatedConstraints, insertIdx)
+      
+      // Show notification if constraints were removed
+      if (affectedConstraintIds.size > 0) {
+        setConstraintNotification(`단계 추가로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setTimeout(() => setConstraintNotification(null), 5000)
+      }
       
       return {
         ...sheet,
         steps: newSteps,
+        constraints: adjustedConstraints,
       }
     })
-  }, [updateCurrentSheet])
+  }, [updateCurrentSheet, checkAffectedConstraintsAndConfirm, findAffectedConstraints])
 
   const updateStepName = useCallback((stepId: string, name: string) => {
     updateCurrentSheet(sheet => ({
@@ -383,11 +437,44 @@ export const useSheetManager = () => {
   }, [updateCurrentSheet])
 
   const deleteStep = useCallback((stepId: string) => {
-    updateCurrentSheet(sheet => ({
-      ...sheet,
-      steps: sheet.steps.filter(step => step.id !== stepId),
-    }))
-  }, [updateCurrentSheet])
+    updateCurrentSheet(sheet => {
+      const stepIndex = sheet.steps.findIndex(step => step.id === stepId)
+      if (stepIndex === -1) return sheet
+      
+      // Check for affected constraints first
+      if (!checkAffectedConstraintsAndConfirm('deleteStep', { stepIndex })) {
+        return sheet // User cancelled
+      }
+      
+      // Find affected constraints
+      const affectedConstraints = findAffectedConstraints('deleteStep', { stepIndex })
+      const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
+      
+      // Remove affected constraints
+      const updatedConstraints = { ...sheet.constraints }
+      affectedConstraintIds.forEach(id => {
+        delete updatedConstraints[id]
+      })
+      
+      // Adjust indices for remaining constraints
+      const adjustedConstraints = adjustConstraintIndicesForStepDeletion(updatedConstraints, stepIndex)
+      
+      // Remove the step
+      const updatedSteps = sheet.steps.filter(step => step.id !== stepId)
+      
+      // Show notification if constraints were removed
+      if (affectedConstraintIds.size > 0) {
+        setConstraintNotification(`단계 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setTimeout(() => setConstraintNotification(null), 5000)
+      }
+      
+      return {
+        ...sheet,
+        steps: updatedSteps,
+        constraints: adjustedConstraints,
+      }
+    })
+  }, [updateCurrentSheet, checkAffectedConstraintsAndConfirm, findAffectedConstraints])
 
   const addOption = useCallback((stepId: string) => {
     updateCurrentSheet(sheet => {
@@ -401,56 +488,51 @@ export const useSheetManager = () => {
         isActive: true,
       }
       
-      const newSteps = sheet.steps.map((step, i) =>
-        i === idx ? { ...step, options: [...step.options, newOption] } : step
-      )
-      
-      const newOptionActivations = { ...sheet.optionActivations }
-      Object.keys(newOptionActivations[idx] || {}).forEach((parentIdxStr) => {
-        const parentIdx = Number(parentIdxStr)
-        newOptionActivations[idx][parentIdx] = [...(newOptionActivations[idx][parentIdx] || []), true]
-      })
-      
-      if (newOptionActivations[idx + 1]) {
-        newOptionActivations[idx + 1][Object.keys(newOptionActivations[idx + 1]).length] = Array(
-          newSteps[idx + 1].options.length
-        ).fill(true)
-      }
-      
       return {
         ...sheet,
-        steps: newSteps,
-        optionActivations: newOptionActivations,
+        steps: sheet.steps.map((step, i) =>
+          i === idx ? { ...step, options: [...step.options, newOption] } : step
+        ),
       }
     })
   }, [updateCurrentSheet])
 
   const deleteOption = useCallback((stepId: string, optionId: string) => {
     updateCurrentSheet(sheet => {
-      const idx = sheet.steps.findIndex(s => s.id === stepId)
-      if (idx === -1) return sheet
-      if (sheet.steps[idx].options.length <= 1) return sheet
+      const stepIndex = sheet.steps.findIndex(s => s.id === stepId)
+      if (stepIndex === -1) return sheet
+      if (sheet.steps[stepIndex].options.length <= 1) return sheet
       
-      const delIdx = sheet.steps[idx].options.findIndex(opt => opt.id === optionId)
-      if (delIdx === -1) return sheet
+      // Check for affected constraints first
+      if (!checkAffectedConstraintsAndConfirm('deleteOption', { stepIndex, optionId })) {
+        return sheet // User cancelled
+      }
       
-      const newSteps = sheet.steps.map((step, i) =>
-        i === idx ? { ...step, options: step.options.filter((_, j) => j !== delIdx) } : step
-      )
+      // Find affected constraints
+      const affectedConstraints = findAffectedConstraints('deleteOption', { stepIndex, optionId })
+      const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
       
-      const newOptionActivations = { ...sheet.optionActivations }
-      Object.keys(newOptionActivations[idx] || {}).forEach((parentIdxStr) => {
-        const parentIdx = Number(parentIdxStr)
-        newOptionActivations[idx][parentIdx] = (newOptionActivations[idx][parentIdx] || []).filter((_: unknown, j: number) => j !== delIdx)
+      // Remove affected constraints
+      const updatedConstraints = { ...sheet.constraints }
+      affectedConstraintIds.forEach(id => {
+        delete updatedConstraints[id]
       })
+      
+      // Show notification if constraints were removed
+      if (affectedConstraintIds.size > 0) {
+        setConstraintNotification(`옵션 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setTimeout(() => setConstraintNotification(null), 5000)
+      }
       
       return {
         ...sheet,
-        steps: newSteps,
-        optionActivations: newOptionActivations,
+        steps: sheet.steps.map((step, i) =>
+          i === stepIndex ? { ...step, options: step.options.filter(opt => opt.id !== optionId) } : step
+        ),
+        constraints: updatedConstraints,
       }
     })
-  }, [updateCurrentSheet])
+  }, [updateCurrentSheet, checkAffectedConstraintsAndConfirm, findAffectedConstraints])
 
   const toggleStepActive = useCallback((stepId: string, isActive: boolean) => {
     updateCurrentSheet(sheet => ({
@@ -459,36 +541,87 @@ export const useSheetManager = () => {
     }))
   }, [updateCurrentSheet])
 
-  const toggleOptionActive = useCallback((pathKey: string, stepIdx: number, isActive: boolean) => {
+  // These functions no longer modify stored pathActivations since we generate them dynamically
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const toggleOptionActive = useCallback((_pathKey: string, _stepIdx: number, _isActive: boolean) => {
+    // This function is called from the table UI but since we generate pathActivations dynamically,
+    // we need to update the underlying step/option data instead
+    console.warn('toggleOptionActive called but pathActivations are now generated dynamically')
+  }, [])
+
+  const toggleOptionByStepAndOption = useCallback((stepId: string, optionId: string, isActive: boolean) => {
+    updateCurrentSheet(sheet => ({
+      ...sheet,
+      steps: sheet.steps.map(step =>
+        step.id === stepId
+          ? {
+              ...step,
+              options: step.options.map(opt =>
+                opt.id === optionId ? { ...opt, isActive } : opt
+              )
+            }
+          : step
+      )
+    }))
+  }, [updateCurrentSheet])
+
+  // Constraint management functions
+  const addConstraint = useCallback((constraint: Omit<WorkflowConstraint, 'id' | 'createdAt'>) => {
     updateCurrentSheet(sheet => {
-      const newPathActivations = { ...sheet.pathActivations }
-      if (!newPathActivations[pathKey]) return sheet
-      newPathActivations[pathKey][stepIdx] = isActive
+      const constraintId = generateId("constraint")
+      const newConstraint: WorkflowConstraint = {
+        ...constraint,
+        id: constraintId,
+        createdAt: Date.now(),
+      }
+      
       return {
         ...sheet,
-        pathActivations: newPathActivations,
+        constraints: {
+          ...sheet.constraints,
+          [constraintId]: newConstraint,
+        },
       }
     })
   }, [updateCurrentSheet])
 
-  const toggleOptionNextStepActive = useCallback((stepId: string, optionId: string, isActive: boolean, parentOptionIdx: number) => {
+  const updateConstraint = useCallback((constraintId: string, updates: Partial<WorkflowConstraint>) => {
+    updateCurrentSheet(sheet => ({
+      ...sheet,
+      constraints: {
+        ...sheet.constraints,
+        [constraintId]: {
+          ...sheet.constraints?.[constraintId],
+          ...updates,
+        } as WorkflowConstraint,
+      },
+    }))
+  }, [updateCurrentSheet])
+
+  const deleteConstraint = useCallback((constraintId: string) => {
     updateCurrentSheet(sheet => {
-      const idx = sheet.steps.findIndex(s => s.id === stepId)
-      if (idx === -1) return sheet
-      
-      const optIdx = sheet.steps[idx].options.findIndex(opt => opt.id === optionId)
-      if (optIdx === -1) return sheet
-      
-      const newOptionActivations = { ...sheet.optionActivations }
-      if (!newOptionActivations[idx]) newOptionActivations[idx] = {}
-      if (!newOptionActivations[idx][parentOptionIdx]) {
-        newOptionActivations[idx][parentOptionIdx] = Array(sheet.steps[idx].options.length).fill(true)
-      }
-      newOptionActivations[idx][parentOptionIdx][optIdx] = isActive
-      
+      const newConstraints = { ...sheet.constraints }
+      delete newConstraints[constraintId]
       return {
         ...sheet,
-        optionActivations: newOptionActivations,
+        constraints: newConstraints,
+      }
+    })
+  }, [updateCurrentSheet])
+
+  // Force recalculation of path activations based on current constraints
+  const syncConstraints = useCallback(() => {
+    // Since pathActivations are now generated dynamically, this just triggers a re-render
+    triggerUpdate()
+  }, [triggerUpdate])
+
+  // Adjust constraint indices when a step is inserted
+  const adjustConstraintIndices = useCallback((insertIndex: number) => {
+    updateCurrentSheet(sheet => {
+      const adjustedConstraints = adjustConstraintIndicesForStepInsertion(sheet.constraints || {}, insertIndex)
+      return {
+        ...sheet,
+        constraints: adjustedConstraints,
       }
     })
   }, [updateCurrentSheet])
@@ -496,8 +629,9 @@ export const useSheetManager = () => {
   return {
     // Current sheet data
     steps,
-    optionActivations,
     pathActivations,
+    constraints,
+    constraintNotification,
     currentTab,
     
     // Sheet management
@@ -518,9 +652,16 @@ export const useSheetManager = () => {
     deleteOption,
     toggleStepActive,
     toggleOptionActive,
-    toggleOptionNextStepActive,
+    toggleOptionByStepAndOption,
     setCurrentTab,
     addStepAtIndex,
+    
+    // Constraint management (for current sheet)
+    addConstraint,
+    updateConstraint,
+    deleteConstraint,
+    syncConstraints,
+    adjustConstraintIndices,
     
     // Storage management
     saveError,

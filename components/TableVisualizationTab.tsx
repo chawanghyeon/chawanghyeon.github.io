@@ -1,26 +1,20 @@
 import React from "react";
-import { Step, PathActivationMap } from "../hooks/useStepManager";
+import { Step, ConstraintMap, ConstraintApplicationResult } from "../lib/types";
 import TextDetailTooltip from "./ui/TextDetailTooltip";
-import { calculateStepCombinationStats } from "../lib/utils";
+import { calculateStepCombinationStats, getAllCombinations } from "../lib/utils";
+import { applyConstraintsWithPriority } from "../lib/constraints";
+import { defaultExternalContext } from "../lib/condition-evaluator";
 
 interface TableVisualizationTabProps {
   steps: Step[];
-  pathActivations?: PathActivationMap;
+  constraints?: ConstraintMap;
+  pathActivations?: Record<string, boolean[]>;
+  onToggleOptionActive?: (pathKey: string, stepIdx: number, isActive: boolean) => void;
 }
 
 // 가상화 스크롤 설정
 const ITEM_HEIGHT = 40; // 고정 행 높이
 const OVERSCAN = 5; // 버퍼 행 수
-
-// Utility function for combinations (moved outside component for better performance)
-function getAllCombinations<T>(arrays: T[][]): T[][] {
-  if (arrays.length === 0) return [[]];
-  const [first, ...rest] = arrays;
-  const restCombinations = getAllCombinations(rest);
-  return first.flatMap((item) =>
-    restCombinations.map((comb) => [item, ...comb])
-  );
-}
 
 // 가상화 스크롤 훅
 function useVirtualScroll(
@@ -66,7 +60,9 @@ function useVirtualScroll(
 
 const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
   steps,
+  constraints = {},
   pathActivations,
+  onToggleOptionActive,
 }) => {
   const [filters, setFilters] = React.useState<(string | null)[]>(
     steps.map(() => null)
@@ -76,34 +72,6 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
   const [scrollTop, setScrollTop] = React.useState(0);
   const [containerHeight, setContainerHeight] = React.useState(400);
 
-  // Immediate scroll handler for ultra-responsive scrolling
-  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  }, []);
-
-  React.useEffect(() => {
-    setFilters(steps.map(() => null));
-  }, [steps]);
-
-  // 컨테이너 높이 측정
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    
-    const updateHeight = () => {
-      if (containerRef.current) {
-        setContainerHeight(containerRef.current.clientHeight);
-      }
-    };
-
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(containerRef.current);
-    updateHeight();
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  const stepNames = steps.map((step) => step.displayName || step.name);
-  
   // Memoize option arrays computation
   const optionArrays = React.useMemo(() => steps.map((step) =>
     step.options.length > 0
@@ -125,6 +93,112 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
     [optionArrays]
   );
 
+  // Analyze constraints for all combinations
+  const constraintAnalysis = React.useMemo(() => {
+    if (Object.keys(constraints).length === 0) return null;
+
+    const analysis: {
+      [pathIndex: string]: {
+        combination: Array<{ id: string; name: string; displayName: string }>;
+        appliedConstraints: ConstraintApplicationResult;
+        pathIndex: number;
+      }
+    } = {};
+
+    allCombinations.forEach((combination, pathIndex) => {
+      // Convert combination to selected path format
+      const selectedPath: { [stepIndex: number]: string } = {};
+      combination.forEach((option, stepIndex) => {
+        selectedPath[stepIndex] = option.id;
+      });
+
+      // Apply constraints for this specific path
+      const result = applyConstraintsWithPriority(steps, constraints, selectedPath, defaultExternalContext);
+
+      analysis[pathIndex] = {
+        combination,
+        appliedConstraints: result,
+        pathIndex
+      };
+    });
+
+    return analysis;
+  }, [constraints, steps, allCombinations]);
+
+  // Helper function to determine if a cell should be active based on constraints
+  const isCellActiveWithConstraints = React.useCallback((
+    pathIndex: number,
+    stepIndex: number,
+    option: { id: string; name: string; displayName: string; isActive?: boolean }
+  ): boolean => {
+    // If no constraints are defined, fall back to original logic
+    if (!constraintAnalysis || Object.keys(constraints).length === 0) {
+      if (pathActivations && Array.isArray(pathActivations[String(pathIndex)])) {
+        return !!pathActivations[String(pathIndex)][stepIndex] && !!option.isActive && !!steps[stepIndex].isActive;
+      }
+      return !!option.isActive && !!steps[stepIndex].isActive;
+    }
+
+    // Use constraint analysis result
+    const analysis = constraintAnalysis[pathIndex];
+    if (!analysis) {
+      // Fallback if no analysis available
+      return !!option.isActive && !!steps[stepIndex].isActive;
+    }
+
+    const { appliedConstraints } = analysis;
+    
+    // Check if this option is disabled by constraints
+    if (appliedConstraints.disabledOptions[stepIndex]?.has(option.id)) {
+      return false;
+    }
+
+    // Check if this option is required by constraints (always active)
+    if (appliedConstraints.requiredOptions[stepIndex]?.has(option.id)) {
+      return true;
+    }
+
+    // Check if this option is explicitly enabled by constraints
+    if (appliedConstraints.enabledOptions[stepIndex]?.has(option.id)) {
+      return true;
+    }
+
+    // Default behavior: check original activation state
+    if (pathActivations && Array.isArray(pathActivations[String(pathIndex)])) {
+      return !!pathActivations[String(pathIndex)][stepIndex] && !!option.isActive && !!steps[stepIndex].isActive;
+    }
+
+    return !!option.isActive && !!steps[stepIndex].isActive;
+  }, [constraintAnalysis, constraints, pathActivations, steps]);
+
+  // Immediate scroll handler for ultra-responsive scrolling
+  const handleScroll = React.useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, [setScrollTop]);
+
+  React.useEffect(() => {
+    setFilters(steps.map(() => null));
+  }, [steps]);
+
+  // 컨테이너 높이 측정
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateHeight = () => {
+      if (containerRef.current) {
+        setContainerHeight(containerRef.current.clientHeight);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(containerRef.current);
+    updateHeight();
+
+    return () => resizeObserver.disconnect();
+  }, [setContainerHeight]);
+
+  const stepNames = steps.map((step) => step.displayName || step.name);
+  
   // Memoize filtered combinations
   const filteredCombinations = React.useMemo(() => 
     allCombinations.filter((row) =>
@@ -170,14 +244,8 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
     }[],
     rowIndex: number
   ): boolean => {
-    if (pathActivations && Array.isArray(pathActivations[String(rowIndex)])) {
-      return pathActivations[String(rowIndex)].every(
-        (cellActive, idx) =>
-          !!cellActive && !!row[idx].isActive && steps[idx].isActive
-      );
-    }
-    return row.every((option, idx) => !!option.isActive && steps[idx].isActive);
-  }, [pathActivations, steps]);
+    return row.every((option, stepIdx) => isCellActiveWithConstraints(rowIndex, stepIdx, option));
+  }, [isCellActiveWithConstraints]);
 
   // Calculate scenario counts
   const scenarioStats = React.useMemo(() => {
@@ -206,6 +274,27 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
   return (
     <div className="table-container" style={{ width: "100%", overflow: "hidden" }}>
       <h2>📊 표 시각화</h2>
+
+      {/* Constraint Status Indicator */}
+      {Object.keys(constraints).length > 0 && (
+        <div style={{ 
+          marginBottom: 12, 
+          padding: 8, 
+          backgroundColor: "#e3f2fd", 
+          borderRadius: 6,
+          border: "1px solid #2196f3",
+          display: "flex",
+          alignItems: "center",
+          gap: 8
+        }}>
+          <span style={{ fontSize: "14px", color: "#1976d2", fontWeight: 600 }}>
+            ⚙️ 제약 조건 적용됨
+          </span>
+          <span style={{ fontSize: "13px", color: "#666" }}>
+            ({Object.values(constraints).filter(c => c.isActive).length}개 활성 제약 조건)
+          </span>
+        </div>
+      )}
 
       {/* Scenario Statistics */}
       <div style={{ 
@@ -341,7 +430,8 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                   .replace(/</g, "&lt;")
                   .replace(/>/g, "&gt;");
                 if (inactive)
-                  return `<td style="color: #6b7280;"><s>${safe}</s></td>`;
+                  // Use uppercase ASCII X as the cell content for disabled options
+                  return `<td style="color: #6b7280; text-align: center;">X</td>`;
                 return `<td>${safe}</td>`;
               };
 
@@ -350,11 +440,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                   const idxCell = `<td>${rIdx + 1}</td>`;
                   const cells = row
                     .map((option, cIdx) => {
-                      const cellActive =
-                        pathActivations &&
-                        Array.isArray(pathActivations[String(rIdx)])
-                          ? !!pathActivations[String(rIdx)][cIdx]
-                          : !!(steps[cIdx].isActive && option.isActive);
+                      const cellActive = isCellActiveWithConstraints(rIdx, cIdx, option);
                       return buildCell(
                         option.displayName || option.name,
                         !cellActive && option.name !== "-"
@@ -415,12 +501,13 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
               ) {
                 // fallback to CSV-like plain text
                 const csv = filteredCombinations
-                  .map((row, rIdx) =>
-                    [
-                      String(rIdx + 1),
-                      ...row.map((o) => o.displayName || o.name),
-                    ].join("\t")
-                  )
+                  .map((row, rIdx) => {
+                    const cells = row.map((o, cIdx) => {
+                      const cellActive = isCellActiveWithConstraints(rIdx, cIdx, o);
+                      return cellActive || o.name === "-" ? (o.displayName || o.name) : "X";
+                    });
+                    return [String(rIdx + 1), ...cells].join("\t");
+                  })
                   .join("\n");
                 await navigator.clipboard.writeText(csv);
               } else {
@@ -540,11 +627,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                       style={{ height: ITEM_HEIGHT }}
                     >
                       {row.map((option, stepIdx) => {
-                        const cellActive =
-                          pathActivations &&
-                          Array.isArray(pathActivations[String(index)])
-                            ? !!pathActivations[String(index)][stepIdx]
-                            : !!(steps[stepIdx].isActive && option.isActive);
+                        const cellActive = isCellActiveWithConstraints(index, stepIdx, option);
                         return (
                           <td
                             key={option.id || stepIdx}
@@ -555,14 +638,22 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                             }
                             style={{
                               padding: 4,
-                              border: "1px solid #dee2e6"
+                              border: "1px solid #dee2e6",
+                              cursor: onToggleOptionActive ? "pointer" : "default"
+                            }}
+                            onClick={() => {
+                              if (onToggleOptionActive && option.name !== "-") {
+                                onToggleOptionActive(String(index), stepIdx, !cellActive);
+                              }
                             }}
                           >
-                            <TextDetailTooltip text={option.displayName || option.name}>
-                              <div className="cell-inner">
-                                {option.displayName || option.name}
-                              </div>
-                            </TextDetailTooltip>
+                            {(!cellActive && option.name !== "-") ? (
+                              <div className="cell-inner">X</div>
+                            ) : (
+                              <TextDetailTooltip text={option.displayName || option.name}>
+                                <div className="cell-inner">{option.displayName || option.name}</div>
+                              </TextDetailTooltip>
+                            )}
                           </td>
                         );
                       })}
