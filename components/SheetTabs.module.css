@@ -1,109 +1,109 @@
 /* Sheet Tabs Styles */
 .sheetTabsContainer {
-	border-bottom: 1px solid var(--border);
-	background: #f8f9fa;
-	padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: #f8f9fa;
+    padding: 0 16px;
 }
 
 .sheetTabs {
-	display: flex;
-	align-items: flex-end;
-	gap: 2px;
-	min-height: 40px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    min-height: 40px;
 }
 
 .sheetTab {
-	background: #e9ecef;
-	border: 1px solid var(--border);
-	border-bottom: none;
-	border-radius: 6px 6px 0 0;
-	padding: 8px 16px;
-	cursor: pointer;
-	user-select: none;
-	min-width: 80px;
-	max-width: 200px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: all 0.2s ease;
-	position: relative;
+    background: #e9ecef;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 8px 16px;
+    cursor: pointer;
+    user-select: none;
+    min-width: 80px;
+    max-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .sheetTab:hover {
-	background: #dee2e6;
+    background: #dee2e6;
 }
 
 .sheetTab.active {
-	background: white;
-	border-bottom: 1px solid white;
-	margin-bottom: -1px;
-	z-index: 1;
+    background: white;
+    border-bottom: 1px solid white;
+    margin-bottom: -1px;
+    z-index: 1;
 }
 
 .sheetTabName {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-size: 0.875rem;
-	font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .sheetTabInput {
-	background: transparent;
-	border: none;
-	outline: none;
-	font-size: 0.875rem;
-	font-weight: 500;
-	width: 100%;
-	text-align: center;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    width: 100%;
+    text-align: center;
 }
 
 .sheetTabAdd {
-	background: #e9ecef;
-	border: 1px solid var(--border);
-	border-bottom: none;
-	border-radius: 6px 6px 0 0;
-	padding: 8px 12px;
-	cursor: pointer;
-	color: #6c757d;
-	font-size: 1rem;
-	font-weight: bold;
-	transition: all 0.2s ease;
-	min-width: 40px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
+    background: #e9ecef;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .sheetTabAdd:hover {
-	background: #dee2e6;
-	color: #495057;
+    background: #dee2e6;
+    color: #495057;
 }
 
 .contextMenu {
-	background: white;
-	border: 1px solid var(--border);
-	border-radius: 6px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	min-width: 120px;
-	overflow: hidden;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 120px;
+    overflow: hidden;
 }
 
 .contextMenuItem {
-	padding: 8px 16px;
-	cursor: pointer;
-	font-size: 0.875rem;
-	transition: background-color 0.2s ease;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
 }
 
 .contextMenuItem:hover {
-	background: #f8f9fa;
+    background: #f8f9fa;
 }
 
 .contextMenuItem.danger {
-	color: #dc3545;
+    color: #dc3545;
 }
 
 .contextMenuItem.danger:hover {
-	background: #f8d7da;
+    background: #f8d7da;
 }

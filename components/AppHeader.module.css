@@ -1,62 +1,66 @@
 /* App Header Styles */
 .appHeader {
-	display: flex;
-	align-items: center;
-	gap: 20px;
-	justify-content: space-between;
-	padding: 18px 20px;
-	background: linear-gradient(90deg, #f8fafc, #ffffff);
-	border-bottom: 1px solid var(--border);
-	position: sticky;
-	top: 0;
-	z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    justify-content: space-between;
+    padding: 18px 20px;
+    background: linear-gradient(90deg, #f8fafc, #ffffff);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 60;
 }
 
 .appHeader h1 {
-	margin: 0;
-	font-size: 1.05rem;
-	display: flex;
-	align-items: center;
-	gap: 10px;
+    margin: 0;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .tabNavigation {
-	display: flex;
-	gap: 8px;
-	align-items: center;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .tabBtn {
-	background: transparent;
-	border: 1px solid transparent;
-	padding: 8px 12px;
-	border-radius: 999px;
-	cursor: pointer;
-	color: var(--muted);
-	font-size: 0.92rem;
-	transition: all 0.2s ease;
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.92rem;
+    transition: all 0.2s ease;
 }
 
 .tabBtn.active {
-	background: linear-gradient(90deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.06));
-	color: var(--accent);
-	border-color: rgba(37, 99, 235, 0.12);
-	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+    background: linear-gradient(
+        90deg,
+        rgba(37, 99, 235, 0.12),
+        rgba(37, 99, 235, 0.06)
+    );
+    color: var(--accent);
+    border-color: rgba(37, 99, 235, 0.12);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
 }
 
 .tabBtn:hover {
-	background: rgba(0, 0, 0, 0.02);
+    background: rgba(0, 0, 0, 0.02);
 }
 
 /* Mobile responsiveness */
 @media (max-width: 720px) {
-	.appHeader {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 10px;
-	}
-	
-	.tabNavigation {
-		flex-wrap: wrap;
-	}
+    .appHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .tabNavigation {
+        flex-wrap: wrap;
+    }
 }

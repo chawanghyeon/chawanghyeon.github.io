@@ -2,331 +2,331 @@
 
 /* Excel-like table visualization styles */
 .excelTableWrapper {
-	overflow: auto;
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: #fff;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
 }
 
 .excelTableContainer {
-	min-width: 720px;
-	overflow: auto;
-	width: 100%;
+    min-width: 720px;
+    overflow: auto;
+    width: 100%;
 }
 
 .excelTable {
-	border-collapse: collapse;
-	width: auto;
-	min-width: 100%;
+    border-collapse: collapse;
+    width: auto;
+    min-width: 100%;
 }
 
 .excelTable thead th {
-	position: sticky;
-	top: 0;
-	background: #fff;
-	z-index: 30;
-	border-bottom: 1px solid var(--border);
-	padding: 10px;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 30;
+    border-bottom: 1px solid var(--border);
+    padding: 10px;
 }
 
 .excelTable th,
 .excelTable td {
-	padding: 8px 10px;
-	border-right: 1px solid var(--border);
-	border-bottom: 1px solid var(--border);
-	text-align: left;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	min-width: 120px;
+    padding: 8px 10px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 120px;
 }
 
 .excelTable .cellInner {
-	padding: 4px 2px;
+    padding: 4px 2px;
 }
 
 .excelTable .dataRow:hover td {
-	background: #fbfbfd;
+    background: #fbfbfd;
 }
 
 /* Stats Section */
 .statsSection {
-	margin-bottom: 24px;
-	padding: 16px;
-	background: #f8f9fa;
-	border-radius: 8px;
-	border: 1px solid #e9ecef;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
 }
 
 .statsSection h3 {
-	margin: 0 0 12px 0;
-	font-size: 1.1rem;
-	color: #495057;
+    margin: 0 0 12px 0;
+    font-size: 1.1rem;
+    color: #495057;
 }
 
 .statsGrid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
 }
 
 .statItem {
-	display: flex;
-	justify-content: space-between;
-	margin-bottom: 8px;
-	font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
 }
 
 .statItem:last-child {
-	margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .statItem.warning {
-	color: #d97706;
-	font-weight: 600;
+    color: #d97706;
+    font-weight: 600;
 }
 
 /* Sheets Section */
 .sheetsSection {
-	margin-bottom: 24px;
+    margin-bottom: 24px;
 }
 
 .sheetsList {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .sheetItem {
-	padding: 12px 16px;
-	background: white;
-	border: 1px solid #e9ecef;
-	border-radius: 6px;
-	transition: all 0.2s ease;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 }
 
 .sheetItem.active {
-	background: #e3f2fd;
-	border-color: #2196f3;
+    background: #e3f2fd;
+    border-color: #2196f3;
 }
 
 .sheetItem:hover {
-	background: #f8f9fa;
+    background: #f8f9fa;
 }
 
 .sheetItem.active:hover {
-	background: #e3f2fd;
+    background: #e3f2fd;
 }
 
 .sheetName {
-	font-weight: 600;
-	color: #495057;
-	margin-bottom: 4px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 4px;
 }
 
 .sheetMeta {
-	font-size: 0.875rem;
-	color: #6c757d;
+    font-size: 0.875rem;
+    color: #6c757d;
 }
 
 /* Actions Section */
 .actionsSection {
-	margin-bottom: 24px;
+    margin-bottom: 24px;
 }
 
 .actionGroup {
-	margin-bottom: 20px;
+    margin-bottom: 20px;
 }
 
 .actionGroup h4 {
-	margin: 0 0 8px 0;
-	font-size: 1rem;
-	color: #495057;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: #495057;
 }
 
 .buttonGroup {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .importHelp {
-	margin-top: 12px;
-	padding: 12px;
-	background-color: #f8f9fa;
-	border: 1px solid #e9ecef;
-	border-radius: 6px;
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
 }
 
 .importHelp small {
-	color: #6c757d;
-	line-height: 1.5;
+    color: #6c757d;
+    line-height: 1.5;
 }
 
 .importHelp strong {
-	color: #495057;
-	font-weight: 600;
+    color: #495057;
+    font-weight: 600;
 }
 
 /* Storage Management Styles */
 .storageBarContainer {
-	margin-top: 16px;
+    margin-top: 16px;
 }
 
 .storageBar {
-	width: 100%;
-	height: 8px;
-	background: #e9ecef;
-	border-radius: 4px;
-	overflow: hidden;
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 .storageUsed {
-	height: 100%;
-	background: linear-gradient(90deg, #16a34a, #22c55e);
-	transition: width 0.3s ease;
+    height: 100%;
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    transition: width 0.3s ease;
 }
 
 .storageUsed.warning {
-	background: linear-gradient(90deg, #eab308, #fbbf24);
+    background: linear-gradient(90deg, #eab308, #fbbf24);
 }
 
 .storageUsed.critical {
-	background: linear-gradient(90deg, #dc2626, #ef4444);
+    background: linear-gradient(90deg, #dc2626, #ef4444);
 }
 
 .storageBarLabel {
-	font-size: 0.875rem;
-	color: #6c757d;
-	margin-top: 8px;
-	text-align: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 8px;
+    text-align: center;
 }
 
 /* Save Error Alert */
 .saveErrorAlert {
-	margin-bottom: 24px;
-	background: #fef2f2;
-	border: 1px solid #fecaca;
-	border-radius: 8px;
-	padding: 12px 16px;
+    margin-bottom: 24px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 16px;
 }
 
 .alertContent {
-	display: flex;
-	align-items: center;
-	gap: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .alertIcon {
-	font-size: 1.2rem;
-	color: #dc2626;
+    font-size: 1.2rem;
+    color: #dc2626;
 }
 
 .alertMessage {
-	flex: 1;
-	color: #991b1b;
-	font-size: 0.875rem;
-	line-height: 1.4;
+    flex: 1;
+    color: #991b1b;
+    font-size: 0.875rem;
+    line-height: 1.4;
 }
 
 .alertClose {
-	background: none;
-	border: none;
-	color: #6b7280;
-	cursor: pointer;
-	font-size: 1.2rem;
-	padding: 0;
-	width: 20px;
-	height: 20px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 4px;
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
 }
 
 .alertClose:hover {
-	background: #f3f4f6;
-	color: #374151;
+    background: #f3f4f6;
+    color: #374151;
 }
 
 /* File System Controls */
 .fileSystemControls {
-	margin-top: 16px;
-	padding: 16px;
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: var(--surface);
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
 }
 
 .fileSystemControls h4 {
-	margin: 0 0 12px 0;
-	font-size: 1rem;
-	color: #374151;
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    color: #374151;
 }
 
 .fileSystemControls .buttonGroup {
-	display: flex;
-	gap: 8px;
-	flex-wrap: wrap;
-	margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
 }
 
 .fileSystemControls .btnPrimary {
-	background: #059669;
-	border: none;
-	color: white;
-	padding: 8px 12px;
-	border-radius: 6px;
-	cursor: pointer;
-	font-size: 0.875rem;
-	display: flex;
-	align-items: center;
-	gap: 4px;
+    background: #059669;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .fileSystemControls .btnPrimary:hover {
-	background: #047857;
+    background: #047857;
 }
 
 .fileSystemControls .btnSecondary {
-	background: #6b7280;
-	border: none;
-	color: white;
-	padding: 8px 12px;
-	border-radius: 6px;
-	cursor: pointer;
-	font-size: 0.875rem;
-	display: flex;
-	align-items: center;
-	gap: 4px;
+    background: #6b7280;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .fileSystemControls .btnSecondary:hover {
-	background: #4b5563;
+    background: #4b5563;
 }
 
 .fileSystemInfo {
-	font-size: 0.8rem;
-	color: var(--muted);
-	margin: 0;
-	line-height: 1.4;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.4;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 720px) {
-	.excelTableContainer {
-		min-width: 560px;
-	}
+    .excelTableContainer {
+        min-width: 560px;
+    }
 }
 
 @media (max-width: 640px) {
-	.fileSystemControls .buttonGroup {
-		flex-direction: column;
-	}
-	
-	.fileSystemControls .btnPrimary,
-	.fileSystemControls .btnSecondary {
-		width: 100%;
-		justify-content: center;
-	}
+    .fileSystemControls .buttonGroup {
+        flex-direction: column;
+    }
+
+    .fileSystemControls .btnPrimary,
+    .fileSystemControls .btnSecondary {
+        width: 100%;
+        justify-content: center;
+    }
 }
