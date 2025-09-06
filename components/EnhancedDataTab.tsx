@@ -1,5 +1,6 @@
 import React from 'react'
 import { WorkflowSheet } from '../lib/types'
+import styles from './EnhancedDataTab.module.css'
 
 interface EnhancedDataTabProps {
   currentSheet: WorkflowSheet | undefined
@@ -145,28 +146,28 @@ const EnhancedDataTab: React.FC<EnhancedDataTabProps> = ({
       )}
 
       {/* Current Sheet Statistics */}
-      <div className="stats-section">
+      <div className={styles.statsSection}>
         <h4>현재 시트 통계</h4>
         {currentSheet && currentSheetStats ? (
           <div className="current-sheet-stats">
-            <div className="stat-grid">
-              <div className="stat-item">
+            <div className={styles.statsGrid}>
+              <div className={styles.statItem}>
                 <span className="stat-label">시트 이름:</span>
                 <span className="stat-value">{currentSheet.name}</span>
               </div>
-              <div className="stat-item">
+              <div className={styles.statItem}>
                 <span className="stat-label">단계 수:</span>
                 <span className="stat-value">{currentSheetStats.stepCount}</span>
               </div>
-              <div className="stat-item">
+              <div className={styles.statItem}>
                 <span className="stat-label">옵션 수:</span>
                 <span className="stat-value">{currentSheetStats.optionCount}</span>
               </div>
-              <div className="stat-item">
+              <div className={styles.statItem}>
                 <span className="stat-label">제약조건 수:</span>
                 <span className="stat-value">{currentSheetStats.constraintCount}</span>
               </div>
-              <div className="stat-item">
+              <div className={styles.statItem}>
                 <span className="stat-label">전체 조합 수:</span>
                 <span className="stat-value">{currentSheetStats.totalCombinations.toLocaleString()}</span>
               </div>
@@ -178,23 +179,23 @@ const EnhancedDataTab: React.FC<EnhancedDataTabProps> = ({
       </div>
 
       {/* Overall Statistics */}
-      <div className="stats-section">
+      <div className={styles.statsSection}>
         <h4>전체 통계</h4>
         <div className="overall-stats">
-          <div className="stat-grid">
-            <div className="stat-item">
+          <div className={styles.statsGrid}>
+            <div className={styles.statItem}>
               <span className="stat-label">총 시트 수:</span>
               <span className="stat-value">{overallStats.totalSheets}</span>
             </div>
-            <div className="stat-item">
+            <div className={styles.statItem}>
               <span className="stat-label">총 단계 수:</span>
               <span className="stat-value">{overallStats.totalSteps}</span>
             </div>
-            <div className="stat-item">
+            <div className={styles.statItem}>
               <span className="stat-label">총 옵션 수:</span>
               <span className="stat-value">{overallStats.totalOptions}</span>
             </div>
-            <div className="stat-item">
+            <div className={styles.statItem}>
               <span className="stat-label">총 제약조건 수:</span>
               <span className="stat-value">{overallStats.totalConstraints}</span>
             </div>

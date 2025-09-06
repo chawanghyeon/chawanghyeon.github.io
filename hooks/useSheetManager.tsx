@@ -159,7 +159,7 @@ export const useSheetManager = () => {
     const sourceOption = sourceStep?.options.find(opt => opt.id === constraint.sourceOptionId)
     const stepName = sourceStep?.displayName || sourceStep?.name || `${constraint.sourceStepIndex + 1}단계`
     const optionName = sourceOption?.displayName || sourceOption?.name || '옵션'
-    return `${stepName} - ${optionName}: ${constraint.type} 제약`
+    return `${stepName} - ${optionName}: 워크플로우 제약`
   }, [steps])
 
   // Helper function to find constraints that would be affected by step operations
@@ -244,9 +244,9 @@ export const useSheetManager = () => {
       deleteOption: '옵션을 삭제'
     }[operation]
     
-    const message = `${operationText}하면 ${affectedConstraints.length}개의 제약 조건이 영향을 받아 삭제됩니다:\n\n` +
+    const message = `${operationText}하면 ${affectedConstraints.length}개의 제약 조건이 영향을 받아 사용 불가 상태가 됩니다:\n\n` +
       affectedConstraints.map(c => `• ${getConstraintDescription(c)}`).join('\n') +
-      `\n\n계속하시겠습니까?`
+      `\n\n계속하시겠습니까? (제약 조건은 삭제되지 않고 정책 관리자에서 '사용 안함' 상태로 표시됩니다)`
     
     return window.confirm(message)
   }, [findAffectedConstraints, getConstraintDescription])
@@ -366,11 +366,11 @@ export const useSheetManager = () => {
       const affectedConstraints = findAffectedConstraints('addStep', { insertIndex: insertIdx })
       const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
       
-      // Remove affected constraints
-      const updatedConstraints = { ...sheet.constraints }
-      affectedConstraintIds.forEach(id => {
-        delete updatedConstraints[id]
-      })
+      // Don't remove affected constraints - they will be marked as "unused" in the UI
+      // const updatedConstraints = { ...sheet.constraints }
+      // affectedConstraintIds.forEach(id => {
+      //   delete updatedConstraints[id]
+      // })
       
       const stepId = generateId("step")
       const newStep: Step = {
@@ -395,11 +395,11 @@ export const useSheetManager = () => {
       ].map((step, i) => ({ ...step, name: `${i + 1}단계` }))
       
       // Adjust remaining constraint indices
-      const adjustedConstraints = adjustConstraintIndicesForStepInsertion(updatedConstraints, insertIdx)
+      const adjustedConstraints = adjustConstraintIndicesForStepInsertion(sheet.constraints || {}, insertIdx)
       
-      // Show notification if constraints were removed
+      // Show notification about affected constraints (but not deleted)
       if (affectedConstraintIds.size > 0) {
-        setConstraintNotification(`단계 추가로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setConstraintNotification(`단계 추가로 인해 ${affectedConstraintIds.size}개의 제약 조건이 사용 불가 상태가 되었습니다.`)
         setTimeout(() => setConstraintNotification(null), 5000)
       }
       
@@ -450,21 +450,21 @@ export const useSheetManager = () => {
       const affectedConstraints = findAffectedConstraints('deleteStep', { stepIndex })
       const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
       
-      // Remove affected constraints
-      const updatedConstraints = { ...sheet.constraints }
-      affectedConstraintIds.forEach(id => {
-        delete updatedConstraints[id]
-      })
+      // Don't remove affected constraints - they will be marked as "unused" in the UI
+      // const updatedConstraints = { ...sheet.constraints }
+      // affectedConstraintIds.forEach(id => {
+      //   delete updatedConstraints[id]
+      // })
       
       // Adjust indices for remaining constraints
-      const adjustedConstraints = adjustConstraintIndicesForStepDeletion(updatedConstraints, stepIndex)
+      const adjustedConstraints = adjustConstraintIndicesForStepDeletion(sheet.constraints || {}, stepIndex)
       
       // Remove the step
       const updatedSteps = sheet.steps.filter(step => step.id !== stepId)
       
-      // Show notification if constraints were removed
+      // Show notification about affected constraints (but not deleted)
       if (affectedConstraintIds.size > 0) {
-        setConstraintNotification(`단계 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setConstraintNotification(`단계 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 사용 불가 상태가 되었습니다.`)
         setTimeout(() => setConstraintNotification(null), 5000)
       }
       
@@ -512,15 +512,15 @@ export const useSheetManager = () => {
       const affectedConstraints = findAffectedConstraints('deleteOption', { stepIndex, optionId })
       const affectedConstraintIds = new Set(affectedConstraints.map(c => c.id))
       
-      // Remove affected constraints
-      const updatedConstraints = { ...sheet.constraints }
-      affectedConstraintIds.forEach(id => {
-        delete updatedConstraints[id]
-      })
+      // Don't remove affected constraints - they will be marked as "unused" in the UI
+      // const updatedConstraints = { ...sheet.constraints }
+      // affectedConstraintIds.forEach(id => {
+      //   delete updatedConstraints[id]
+      // })
       
-      // Show notification if constraints were removed
+      // Show notification about affected constraints (but not deleted)
       if (affectedConstraintIds.size > 0) {
-        setConstraintNotification(`옵션 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 삭제되었습니다.`)
+        setConstraintNotification(`옵션 삭제로 인해 ${affectedConstraintIds.size}개의 제약 조건이 사용 불가 상태가 되었습니다.`)
         setTimeout(() => setConstraintNotification(null), 5000)
       }
       
@@ -529,7 +529,7 @@ export const useSheetManager = () => {
         steps: sheet.steps.map((step, i) =>
           i === stepIndex ? { ...step, options: step.options.filter(opt => opt.id !== optionId) } : step
         ),
-        constraints: updatedConstraints,
+        constraints: sheet.constraints, // Keep original constraints
       }
     })
   }, [updateCurrentSheet, checkAffectedConstraintsAndConfirm, findAffectedConstraints])

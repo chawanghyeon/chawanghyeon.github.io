@@ -1,0 +1,1233 @@
+/* Workflow Button Tab Styles */
+.workflowButtonTab {
+	padding: 20px;
+	background: var(--bg);
+	color: #111827;
+}
+
+.workflowButtonTab h3 {
+	margin: 0 0 8px 0;
+	font-size: 1.3rem;
+	color: #1f2937;
+}
+
+.workflowButtonTab p {
+	margin: 8px 0 24px 0;
+	color: #6b7280;
+	line-height: 1.5;
+}
+
+/* Policy Manager Header Section */
+.policyManagerHeaderSection {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24px;
+	padding: 16px;
+	background: #f8fafc;
+	border-radius: 8px;
+	border: 1px solid #e2e8f0;
+}
+
+.sectionTitle {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.sectionTitle h3 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: #1f2937;
+}
+
+.sectionTitle p {
+	margin: 0;
+	font-size: 0.9rem;
+	color: #6b7280;
+}
+
+.openPolicyManagerBtn {
+	background: #3b82f6;
+	color: white;
+	border: none;
+	border-radius: 8px;
+	padding: 10px 16px;
+	cursor: pointer;
+	font-size: 0.9rem;
+	font-weight: 500;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.openPolicyManagerBtn:hover {
+	background: #2563eb;
+	transform: translateY(-1px);
+}
+
+/* Button Sequence Container */
+.buttonSequenceContainer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px;
+	align-items: flex-start;
+	margin-bottom: 32px;
+}
+
+.stepDropdownContainer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 220px;
+}
+
+.stepHeader {
+	text-align: center;
+	margin-bottom: 12px;
+}
+
+.stepHeader h4 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: #374151;
+	font-weight: 600;
+}
+
+.stepNumber {
+	font-size: 0.85rem;
+	color: #9ca3af;
+	margin-top: 4px;
+}
+
+/* Add Step at Beginning */
+.addStepAtBeginning {
+	margin-bottom: 16px;
+	text-align: center;
+}
+
+.addStepAtBeginningBtn {
+	background: #f3f4f6;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 8px 16px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #6b7280;
+	transition: all 0.2s;
+	white-space: nowrap;
+}
+
+.addStepAtBeginningBtn:hover {
+	background: #e5e7eb;
+	color: #374151;
+}
+
+/* Step Title Section */
+.stepTitleSection {
+	flex: 1;
+}
+
+.stepTitleDisplay {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.stepTitleDisplay h4 {
+	cursor: pointer;
+	margin: 0;
+	padding: 4px 8px;
+	border-radius: 4px;
+	transition: background-color 0.2s;
+}
+
+.stepTitleDisplay h4:hover {
+	background: #f3f4f6;
+}
+
+.stepEditForm {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.stepNameInput {
+	flex: 1;
+	padding: 6px 10px;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.editActions {
+	display: flex;
+	gap: 4px;
+}
+
+.saveBtn,
+.cancelBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	font-size: 12px;
+	transition: background-color 0.2s;
+}
+
+.saveBtn {
+	color: #16a34a;
+}
+
+.saveBtn:hover {
+	background: #dcfce7;
+}
+
+.cancelBtn {
+	color: #dc2626;
+}
+
+.cancelBtn:hover {
+	background: #fef2f2;
+}
+
+.editStepBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.editStepBtn:hover {
+	opacity: 1;
+	background: #f3f4f6;
+}
+
+.deleteStepBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	opacity: 0.7;
+	transition: all 0.2s;
+	color: #dc2626;
+}
+
+.deleteStepBtn:hover {
+	opacity: 1;
+	background: #fef2f2;
+	transform: scale(1.1);
+}
+
+.addStepBetweenBtn {
+	background: #f3f4f6;
+	border: 1px solid #d1d5db;
+	border-radius: 4px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 14px;
+	color: #6b7280;
+	transition: all 0.2s;
+}
+
+.addStepBetweenBtn:hover {
+	background: #e5e7eb;
+	color: #374151;
+}
+
+/* Dropdown and Constraints */
+.dropdownWithConstraints {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: 100%;
+}
+
+.stepDropdown {
+	padding: 10px 14px;
+	border: 2px solid #d1d5db;
+	border-radius: 10px;
+	font-size: 0.95rem;
+	background: white;
+	cursor: pointer;
+	width: 100%;
+	transition: all 0.2s ease;
+}
+
+.stepDropdown:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.stepDropdown:hover {
+	border-color: #9ca3af;
+}
+
+.optionConstraints {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.constraintIndicator {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	background: #f9fafb;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	transition: all 0.2s ease;
+	border: 1px solid transparent;
+}
+
+.constraintIndicator:hover {
+	background: #f3f4f6;
+	border-color: #e5e7eb;
+}
+
+.constraintIndicator.selected {
+	background: #dbeafe;
+	border-color: #93c5fd;
+}
+
+.constraintIndicator.disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.constraintIndicator.disabled::after {
+	content: attr(data-reason);
+	display: none;
+	position: absolute;
+	background: #1f2937;
+	color: white;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 0.8rem;
+	white-space: nowrap;
+	z-index: 100;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: 4px;
+}
+
+.constraintIndicator.disabled:hover::after {
+	display: block;
+}
+
+/* Option Editing */
+.optionEditForm {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.optionNameInput {
+	flex: 1;
+	padding: 4px 8px;
+	border: 1px solid #d1d5db;
+	border-radius: 4px;
+	font-size: 0.9rem;
+}
+
+.optionDisplay {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+
+.optionName {
+	color: #374151;
+	font-weight: 500;
+	flex: 1;
+	cursor: pointer;
+}
+
+.optionActions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.editOptionBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	opacity: 0.6;
+	font-size: 12px;
+	transition: all 0.2s;
+}
+
+.editOptionBtn:hover {
+	opacity: 1;
+	background: #f3f4f6;
+}
+
+.deleteOptionBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	opacity: 0.6;
+	font-size: 12px;
+	transition: all 0.2s;
+	color: #dc2626;
+}
+
+.deleteOptionBtn:hover {
+	opacity: 1;
+	background: #fef2f2;
+}
+
+.constraintIcon {
+	font-size: 0.9rem;
+	margin-left: 8px;
+}
+
+.addOptionContainer {
+	margin-top: 8px;
+}
+
+.addOptionBtn {
+	background: #f3f4f6;
+	border: 1px dashed #d1d5db;
+	padding: 8px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	color: #6b7280;
+	transition: all 0.2s;
+	width: 100%;
+}
+
+.addOptionBtn:hover {
+	background: #e5e7eb;
+	border-color: #9ca3af;
+	color: #374151;
+}
+
+.stepArrow {
+	font-size: 1.8rem;
+	color: #9ca3af;
+	margin: 0 12px;
+	align-self: center;
+	font-weight: 300;
+}
+
+/* Path Summary */
+.pathSummary {
+	background: #f8fafc;
+	padding: 20px;
+	border-radius: 12px;
+	margin-top: 32px;
+	border: 1px solid #e2e8f0;
+}
+
+.pathSummary h4 {
+	margin: 0 0 16px 0;
+	color: #1e293b;
+	font-size: 1.1rem;
+}
+
+.pathDisplay {
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+
+.pathStep {
+	margin-right: 12px;
+	display: inline-block;
+}
+
+.pathStep strong {
+	color: #475569;
+}
+
+.unselected {
+	color: #94a3b8;
+	font-style: italic;
+}
+
+/* Constraint Modal */
+.constraintModalOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.constraintModal {
+	background: white;
+	border-radius: 12px;
+	max-width: 600px;
+	width: 90vw;
+	max-height: 80vh;
+	overflow-y: auto;
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modalHeader {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 24px;
+	border-bottom: 1px solid #f1f5f9;
+}
+
+.modalHeader h3 {
+	margin: 0;
+	font-size: 1.25rem;
+	color: #1e293b;
+}
+
+.closeBtn {
+	background: none;
+	border: none;
+	font-size: 1.5rem;
+	cursor: pointer;
+	color: #94a3b8;
+	padding: 4px;
+	border-radius: 4px;
+}
+
+.closeBtn:hover {
+	background: #f1f5f9;
+	color: #64748b;
+}
+
+.modalContent {
+	padding: 24px;
+}
+
+.currentOptionInfo {
+	background: #f8fafc;
+	padding: 16px;
+	border-radius: 8px;
+	margin-bottom: 24px;
+	border-left: 4px solid var(--accent);
+}
+
+.currentOptionInfo h4 {
+	margin: 0;
+	color: #1e293b;
+	font-size: 1.1rem;
+}
+
+.existingConstraints {
+	margin-bottom: 32px;
+}
+
+.existingConstraints h5 {
+	margin: 0 0 16px 0;
+	color: #1e293b;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.constraintItem {
+	background: #f8fafc;
+	padding: 16px;
+	border-radius: 8px;
+	margin-bottom: 12px;
+	border: 1px solid #e2e8f0;
+}
+
+.constraintInfo strong {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.constraintInfo p {
+	margin: 6px 0 12px 0;
+	font-size: 0.9rem;
+	color: #64748b;
+	line-height: 1.4;
+}
+
+.constraintControls {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.constraintControls label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.9rem;
+	color: #475569;
+	cursor: pointer;
+}
+
+.deleteConstraintBtn {
+	background: var(--danger);
+	color: white;
+	border: none;
+	padding: 6px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+
+.deleteConstraintBtn:hover {
+	background: #b91c1c;
+}
+
+/* Auto-constraint hint */
+.autoConstraintHint {
+	color: #059669;
+	font-size: 0.85rem;
+	margin-top: 8px;
+	padding: 8px 12px;
+	background: #ecfdf5;
+	border-radius: 6px;
+	border-left: 3px solid #10b981;
+}
+
+.autoConstraintHint::before {
+	content: "💡 ";
+}
+
+/* Form groups */
+.formGroup {
+	margin-bottom: 16px;
+}
+
+.formGroup label {
+	display: block;
+	margin-bottom: 6px;
+	font-weight: 500;
+	color: #374151;
+}
+
+.formGroup select,
+.formGroup input {
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 0.9rem;
+}
+
+.addConstraintSection {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid #e5e7eb;
+}
+
+.addConstraintSection h5 {
+	margin: 0 0 16px 0;
+	color: #1e293b;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+/* Route conditions */
+.routeConditions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.routeConditionItem {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	background: #f8fafc;
+	border-radius: 6px;
+}
+
+.externalConditionItem {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	background: #f8fafc;
+	border-radius: 6px;
+}
+
+.removeConditionBtn {
+	background: #ef4444;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	padding: 4px 8px;
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+
+.removeConditionBtn:hover {
+	background: #dc2626;
+}
+
+.addConditionBtn {
+	background: #f3f4f6;
+	border: 1px dashed #d1d5db;
+	padding: 8px 16px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	color: #6b7280;
+	transition: all 0.2s;
+	margin-top: 8px;
+}
+
+.addConditionBtn:hover {
+	background: #e5e7eb;
+	border-color: #9ca3af;
+	color: #374151;
+}
+
+/* Target steps selection */
+.targetStepsSelection {
+	margin-bottom: 16px;
+}
+
+.targetStepsList {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.targetStepItem {
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	padding: 12px;
+	background: #fafafa;
+}
+
+.targetStepHeader {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.targetOptionsGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 8px;
+}
+
+.targetOptionItem {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.85rem;
+}
+
+.constraintActionGroup {
+	margin-bottom: 16px;
+}
+
+.actionRadioGroup {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.actionRadioItem {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.9rem;
+}
+
+.descriptionTextarea {
+	width: 100%;
+	min-height: 80px;
+	padding: 10px;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	resize: vertical;
+	font-family: inherit;
+	font-size: 0.9rem;
+}
+
+.modalActions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid #e5e7eb;
+}
+
+.addConstraintBtn {
+	background: var(--accent);
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.9rem;
+	font-weight: 500;
+}
+
+.addConstraintBtn:hover {
+	background: #2563eb;
+}
+
+.cancelModalBtn {
+	background: #f3f4f6;
+	color: #374151;
+	border: 1px solid #d1d5db;
+	padding: 10px 20px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.cancelModalBtn:hover {
+	background: #e5e7eb;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+	.buttonSequenceContainer {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.stepDropdownContainer {
+		min-width: 200px;
+		align-items: stretch;
+	}
+
+	.stepArrow {
+		transform: rotate(90deg);
+		margin: 12px 0;
+		align-self: center;
+	}
+
+	.constraintModal {
+		width: 95vw;
+		max-height: 90vh;
+	}
+
+	.modalContent {
+		padding: 16px;
+	}
+}
+
+.dropdownWithConstraints {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: 100%;
+}
+
+.stepDropdown {
+	padding: 10px 14px;
+	border: 2px solid #d1d5db;
+	border-radius: 10px;
+	font-size: 0.95rem;
+	background: white;
+	cursor: pointer;
+	width: 100%;
+	transition: all 0.2s ease;
+}
+
+.stepDropdown:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.stepDropdown:hover {
+	border-color: #9ca3af;
+}
+
+.optionConstraints {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.constraintIndicator {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	background: #f9fafb;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	transition: all 0.2s ease;
+	border: 1px solid transparent;
+}
+
+.constraintIndicator:hover {
+	background: #f3f4f6;
+	border-color: #e5e7eb;
+}
+
+.constraintIndicator.selected {
+	background: #dbeafe;
+	border-color: #93c5fd;
+}
+
+.constraintIndicator.disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.constraintIndicator.disabled .constraintIcon[title] {
+	cursor: help;
+}
+
+.constraintIndicator.disabled::after {
+	content: attr(data-reason);
+	display: none;
+	position: absolute;
+	background: #1f2937;
+	color: white;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 0.8rem;
+	white-space: nowrap;
+	z-index: 100;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: 4px;
+}
+
+.constraintIndicator.disabled:hover::after {
+	display: block;
+}
+
+.optionName {
+	color: #374151;
+	font-weight: 500;
+}
+
+.constraintIcon {
+	font-size: 0.9rem;
+	margin-left: 8px;
+}
+
+/* Add Step at Beginning Styles */
+.addStepAtBeginning {
+	margin-bottom: 16px;
+	text-align: center;
+}
+
+.addStepAtBeginningBtn {
+	background: #f3f4f6;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+	padding: 8px 16px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #6b7280;
+	transition: all 0.2s;
+	white-space: nowrap;
+}
+
+.addStepAtBeginningBtn:hover {
+	background: #e5e7eb;
+	color: #374151;
+}
+
+/* Step Header Editing Styles */
+.stepTitleSection {
+	flex: 1;
+}
+
+.stepTitleDisplay {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.stepTitleDisplay h4 {
+	cursor: pointer;
+	margin: 0;
+	padding: 4px 8px;
+	border-radius: 4px;
+	transition: background-color 0.2s;
+}
+
+.stepTitleDisplay h4:hover {
+	background: #f3f4f6;
+}
+
+.editStepBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.editStepBtn:hover {
+	opacity: 1;
+	background: #f3f4f6;
+}
+
+.deleteStepBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	opacity: 0.7;
+	transition: all 0.2s;
+	color: #dc2626;
+}
+
+.deleteStepBtn:hover {
+	opacity: 1;
+	background: #fef2f2;
+	transform: scale(1.1);
+}
+
+.stepEditForm {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.stepNameInput {
+	flex: 1;
+	padding: 6px 10px;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.stepControls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.addStepBetweenBtn {
+	background: #f3f4f6;
+	border: 1px solid #d1d5db;
+	border-radius: 4px;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 14px;
+	color: #6b7280;
+	transition: all 0.2s;
+}
+
+.addStepBetweenBtn:hover {
+	background: #e5e7eb;
+	color: #374151;
+}
+
+/* Option Editing Styles */
+.optionDisplay {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+
+.optionDisplay .optionName {
+	flex: 1;
+	cursor: pointer;
+}
+
+.optionActions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.editOptionBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	opacity: 0.6;
+	font-size: 12px;
+	transition: all 0.2s;
+}
+
+.editOptionBtn:hover {
+	opacity: 1;
+	background: #f3f4f6;
+}
+
+.optionEditForm {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.optionNameInput {
+	flex: 1;
+	padding: 4px 8px;
+	border: 1px solid #d1d5db;
+	border-radius: 4px;
+	font-size: 0.9rem;
+}
+
+.editActions {
+	display: flex;
+	gap: 4px;
+}
+
+.saveBtn,
+.cancelBtn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	font-size: 12px;
+	transition: background-color 0.2s;
+}
+
+.saveBtn {
+	color: #16a34a;
+}
+
+.saveBtn:hover {
+	background: #dcfce7;
+}
+
+.cancelBtn {
+	color: #dc2626;
+}
+
+.cancelBtn:hover {
+	background: #fef2f2;
+}
+
+.addOptionContainer {
+	margin-top: 8px;
+}
+
+.addOptionBtn {
+	background: #f3f4f6;
+	border: 1px dashed #d1d5db;
+	padding: 8px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 0.85rem;
+	color: #6b7280;
+	transition: all 0.2s;
+	width: 100%;
+}
+
+.addOptionBtn:hover {
+	background: #e5e7eb;
+	border-color: #9ca3af;
+	color: #374151;
+}
+
+.stepArrow {
+	font-size: 1.8rem;
+	color: #9ca3af;
+	margin: 0 12px;
+	align-self: center;
+	font-weight: 300;
+}
+
+.pathSummary {
+	background: #f8fafc;
+	padding: 20px;
+	border-radius: 12px;
+	margin-top: 32px;
+	border: 1px solid #e2e8f0;
+}
+
+.pathSummary h4 {
+	margin: 0 0 16px 0;
+	color: #1e293b;
+	font-size: 1.1rem;
+}
+
+.pathDisplay {
+	font-size: 0.95rem;
+	line-height: 1.6;
+}
+
+.pathStep {
+	margin-right: 12px;
+	display: inline-block;
+}
+
+.pathStep strong {
+	color: #475569;
+}
+
+.unselected {
+	color: #94a3b8;
+	font-style: italic;
+}
+
+/* Auto-constraint hint */
+.autoConstraintHint {
+	color: #059669;
+	font-size: 0.85rem;
+	margin-top: 8px;
+	padding: 8px 12px;
+	background: #ecfdf5;
+	border-radius: 6px;
+	border-left: 3px solid #10b981;
+}
+
+.autoConstraintHint::before {
+	content: "💡 ";
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+	.buttonSequenceContainer {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.stepDropdownContainer {
+		min-width: 200px;
+		align-items: stretch;
+	}
+
+	.stepArrow {
+		transform: rotate(90deg);
+		margin: 12px 0;
+		align-self: center;
+	}
+}

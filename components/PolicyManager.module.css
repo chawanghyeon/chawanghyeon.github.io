@@ -1,0 +1,719 @@
+/* Policy Manager - Clean and Simple CSS */
+
+/* 오버레이 및 메인 컨테이너 */
+.policyManagerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.policyManager {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 95vw;
+  height: 90vh;
+  max-width: 1400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 헤더 */
+.policyManagerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.policyManagerHeader h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.addButton:hover {
+  background: #2563eb;
+}
+
+.closeButton {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background: #374151;
+}
+
+/* 필터 섹션 */
+.filtersContainer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+  flex-wrap: wrap;
+}
+
+.searchContainer {
+  flex: 1;
+  min-width: 200px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.filterContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.bulkButton {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bulkButton:hover {
+  background: #059669;
+}
+
+.bulkButtonDanger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bulkButtonDanger:hover {
+  background: #dc2626;
+}
+
+.clearFiltersButton {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.clearFiltersButton:hover {
+  background: #374151;
+}
+
+.priorityRangeFilter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+}
+
+.priorityRangeFilter label {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.priorityRangeFilter input.priorityInput {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.priorityRangeFilter input.priorityInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.priorityRangeFilter span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* 통계 섹션 */
+.statsContainer {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 16px;
+  color: #111827;
+  font-weight: 600;
+}
+
+/* 테이블 컨테이너 */
+.tableContainer {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.policyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.policyTable thead {
+  background: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.policyTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.tableRow {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.tableRow:hover {
+  background: #f9fafb;
+}
+
+.tableRow.selected {
+  background: #eff6ff;
+}
+
+.tableRow.hasConflicts {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+.tableRow.hasCircularConflicts {
+  background: #fef3f2;
+  border-left: 4px solid #dc2626;
+  animation: pulseRed 2s infinite;
+}
+
+.tableRow.unusedPolicy {
+  background: #f9fafb;
+  border-left: 4px solid #9ca3af;
+  opacity: 0.7;
+}
+
+.tableRow.unusedPolicy:hover {
+  background: #f3f4f6;
+}
+
+.tableRow.unusedPolicy.selected {
+  background: #e5e7eb;
+}
+
+@keyframes pulseRed {
+  0%, 100% { background: #fef2f2; }
+  50% { background: #fecaca; }
+}
+
+.conflictIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.conflictTooltip {
+  background: #dc2626;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 200px;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.conflictBadge {
+  background: #dc2626;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 8px;
+  cursor: help;
+}
+
+.circularRefBadge {
+  background: #b91c1c;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 8px;
+  cursor: help;
+  animation: pulseGlow 1.5s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(185, 28, 28, 0.4); }
+  50% { box-shadow: 0 0 10px rgba(185, 28, 28, 0.8); }
+}
+
+.errorMessageBox {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 16px 24px;
+  color: #dc2626;
+}
+
+.errorTitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.errorList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.errorList li {
+  padding: 4px 0;
+  border-bottom: 1px solid #fecaca;
+}
+
+.errorList li:last-child {
+  border-bottom: none;
+}
+
+.policyTable td {
+  padding: 12px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* 셀 스타일 */
+.ruleIdCell {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.ruleId {
+  font-family: monospace;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.optionsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.optionTag {
+  background: #e5e7eb;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.statusBadge {
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.statusBadge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusBadge.active:hover {
+  background: #bbf7d0;
+}
+
+.statusBadge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusBadge.inactive:hover {
+  background: #fecaca;
+}
+
+.statusBadge.unused {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.statusBadge.unused:hover {
+  background: #f3f4f6;
+}
+
+.priority {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #1f2937;
+  transition: background-color 0.2s;
+}
+
+.priority:hover {
+  background: #f3f4f6;
+}
+
+.priorityInput {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.descriptionCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.descriptionCell span {
+  cursor: help;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.actionButton:hover {
+  background: #f3f4f6;
+}
+
+.actionButtonDanger {
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.actionButtonDanger:hover {
+  background: #fee2e2;
+}
+
+/* 빈 상태 */
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* 시뮬레이터 모달 */
+.simulatorOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.simulatorModal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.simulatorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.simulatorHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.simulatorContent {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+.simulatorSection {
+  margin-bottom: 24px;
+}
+
+.simulatorSection h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.simulatorSection p {
+  margin: 8px 0;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+.simulatorSection ul {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.simulatorSection li {
+  margin: 4px 0;
+  color: #374151;
+}
+
+.simulatorFooter {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primaryButton:hover {
+  background: #2563eb;
+}
+
+/* Simulator result styles */
+.simulatorSuccess {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 16px;
+  color: #166534;
+}
+
+.simulatorWarning {
+  background: #fffbeb;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 16px;
+  color: #ea580c;
+}
+
+.simulatorError {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 16px;
+  color: #dc2626;
+}
+
+.simulatorInfo {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 16px;
+  color: #1d4ed8;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .policyManager {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .filtersContainer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .bulkActions {
+    margin-left: 0;
+  }
+  
+  .statsContainer {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .policyTable {
+    font-size: 12px;
+  }
+  
+  .policyTable th,
+  .policyTable td {
+    padding: 8px 12px;
+  }
+  
+  .descriptionCell {
+    max-width: 150px;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { WorkflowSheet } from '../lib/types'
+import styles from './SheetTabs.module.css'
 
 interface SheetTabsProps {
   sheets: WorkflowSheet[]
@@ -108,8 +109,8 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   }, [])
 
   return (
-    <div className="sheet-tabs-container">
-      <div className="sheet-tabs">
+    <div className={styles.sheetTabsContainer}>
+      <div className={styles.sheetTabs}>
         {sheets.map((sheet) => (
           <div
             key={sheet.id}
@@ -132,17 +133,17 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
                     handleRenameCancel()
                   }
                 }}
-                className="sheet-tab-input"
+                className={styles.sheetTabInput}
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="sheet-tab-name">{sheet.name}</span>
+              <span className={styles.sheetTabName}>{sheet.name}</span>
             )}
           </div>
         ))}
         
         <button
-          className="sheet-tab-add"
+          className={styles.sheetTabAdd}
           onClick={() => onCreateSheet()}
           title="새 시트 추가"
         >
@@ -152,7 +153,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
 
       {contextMenu && (
         <div
-          className="context-menu"
+          className={styles.contextMenu}
           style={{
             position: 'fixed',
             left: contextMenu.x,
@@ -161,10 +162,10 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="context-menu-item" onClick={() => handleContextMenuAction('rename')}>
+          <div className={styles.contextMenuItem} onClick={() => handleContextMenuAction('rename')}>
             이름 바꾸기
           </div>
-          <div className="context-menu-item" onClick={() => handleContextMenuAction('copy')}>
+          <div className={styles.contextMenuItem} onClick={() => handleContextMenuAction('copy')}>
             시트 복사
           </div>
           {sheets.length > 1 && (

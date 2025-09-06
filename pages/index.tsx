@@ -6,7 +6,6 @@ import SheetTabs from '../components/SheetTabs'
 import WorkflowButtonTab from '../components/WorkflowButtonTab'
 import TableVisualizationTab from '../components/TableVisualizationTab'
 import EnhancedDataTab from '../components/EnhancedDataTab'
-import UserGuideTab from '../components/UserGuideTab'
 
 const HomePage: React.FC = () => {
   const {
@@ -76,8 +75,6 @@ const HomePage: React.FC = () => {
             onClearSaveError={clearSaveError}
           />
         )
-      case 'guide':
-        return <UserGuideTab />
       default:
         return null
     }

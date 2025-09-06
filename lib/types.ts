@@ -39,7 +39,6 @@ export interface WorkflowData {
 }
 
 // Constraint types for Workflow-Button Tab
-export type ConstraintType = 'previous-step' | 'next-step' | 'range-skip' | 'conditional'
 export type ConstraintScope = 'global' | 'route-based' | 'conditional-route'
 
 // Route condition for route-based constraints
@@ -75,7 +74,6 @@ export interface ConstraintException {
 
 export interface WorkflowConstraint {
   id: string
-  type: ConstraintType
   scope: ConstraintScope // 'global' applies to all paths, 'route-based' applies only when route conditions are met, 'conditional-route' includes external conditions
   sourceStepIndex: number
   sourceOptionId: string
@@ -167,3 +165,24 @@ export type InputType = 'text' | 'file' | 'number'
 export type ValueChangeHandler<T = string> = (value: T) => void
 export type ClickHandler = () => void
 export type FileChangeHandler = (file: File | null, mode?: 'replace' | 'append') => void
+
+// User-friendly constraint interface for policy translations
+export interface UserFriendlyConstraint {
+  id: string
+  title: string
+  description: string
+  category: string
+  impact: 'high' | 'medium' | 'low'
+  isActive: boolean
+  createdAt?: string | number
+  lastModified?: string | number
+  appliesTo: {
+    sourceStep: string
+    sourceOption: string
+    targetSteps: string[]
+    targetOptions: string[]
+  }
+  conditions: string[]
+  action: '차단' | '허용' | '필수'
+  priority: number
+}
