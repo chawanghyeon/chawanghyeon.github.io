@@ -223,8 +223,20 @@ export function applyConstraintsWithPriority(
 
         // Check for conflicts with same priority level
         const actionsOnTarget = appliedActions[stepIndex][optionId] || [];
+        const currentPriority = constraint.priority || 50;
+        
+        // Check if there's already a higher priority action applied
+        const higherPriorityActions = actionsOnTarget.filter(
+            (a) => a.priority > currentPriority
+        );
+        
+        if (higherPriorityActions.length > 0) {
+            // Don't apply this action - higher priority action already exists
+            return;
+        }
+        
         const samePriorityActions = actionsOnTarget.filter(
-            (a) => a.priority === (constraint.priority || 50)
+            (a) => a.priority === currentPriority
         );
 
         if (samePriorityActions.length > 1) {
@@ -240,13 +252,26 @@ export function applyConstraintsWithPriority(
                     targetStep: stepIndex,
                     targetOption: optionId,
                     conflictType: "priority",
-                    reason: `Multiple actions on same target with same priority ${
-                        constraint.priority || 50
-                    }`,
+                    reason: `Multiple actions on same target with same priority ${currentPriority}`,
                     resolution: "priority",
                     conflictLevel: "error",
                 });
+                // In case of same priority conflict, don't apply the action
+                return;
             }
+        }
+
+        // Check for lower priority actions that should be overridden
+        const lowerPriorityActions = actionsOnTarget.filter(
+            (a) => a.priority < currentPriority
+        );
+        
+        // If we have lower priority actions, we need to override them
+        if (lowerPriorityActions.length > 0) {
+            // Remove effects of lower priority actions by clearing the options first
+            disabledOptions[stepIndex].delete(optionId);
+            enabledOptions[stepIndex].delete(optionId);
+            requiredOptions[stepIndex].delete(optionId);
         }
 
         // Path-based policies override global ones regardless of priority
@@ -405,8 +430,8 @@ export function applyConstraintsWithPriority(
         appliedConstraints.push({
             constraint,
             applies: true,
-            reason: "Source option selected and conditions met",
-            priority: constraint.priority || 999,
+            reason: "Conditions met and action applied",
+            priority: constraint.priority || 50,
             action,
             status: determinePolicyStatus(constraint, [], conflicts),
         });

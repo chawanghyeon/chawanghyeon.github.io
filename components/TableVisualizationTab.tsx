@@ -158,6 +158,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                 | "disabled-by-constraint"
                 | "required-by-constraint"
                 | "enabled-by-constraint"
+                | "conflicted"
                 | "inactive";
             constraintReason?: string;
         } => {
@@ -197,6 +198,20 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
             }
 
             const { appliedConstraints } = analysis;
+
+            // Check for conflicts affecting this option
+            const hasConflict = appliedConstraints.conflicts.some(conflict => 
+                conflict.targetStep === stepIndex && 
+                conflict.targetOption === option.id
+            );
+
+            if (hasConflict) {
+                return {
+                    isActive: false,
+                    status: "conflicted",
+                    constraintReason: "이 옵션에 대해 정책 충돌이 발생했습니다",
+                };
+            }
 
             // Check if this option is disabled by constraints
             if (appliedConstraints.disabledOptions[stepIndex]?.has(option.id)) {
@@ -549,6 +564,18 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                 }}
                             ></div>
                             <span style={{ color: "#1e40af" }}>정책에 의해 활성화</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div
+                                style={{
+                                    width: 16,
+                                    height: 16,
+                                    backgroundColor: "#fef3c7",
+                                    border: "2px solid #f59e0b",
+                                    borderRadius: 4,
+                                }}
+                            ></div>
+                            <span style={{ color: "#92400e", fontWeight: "bold" }}>정책 충돌</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <div
@@ -916,6 +943,17 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                                             "#fee2e2"; // Light red
                                                         cellStyle.color =
                                                             "#991b1b"; // Dark red
+                                                        break;
+                                                    case "conflicted":
+                                                        cellClass =
+                                                            "constraint-conflicted-cell";
+                                                        cellStyle.backgroundColor =
+                                                            "#fef3c7"; // Light yellow
+                                                        cellStyle.color =
+                                                            "#92400e"; // Dark yellow
+                                                        cellStyle.fontWeight =
+                                                            "bold";
+                                                        cellStyle.border = "2px solid #f59e0b"; // Orange border
                                                         break;
                                                     case "required-by-constraint":
                                                         cellClass =
