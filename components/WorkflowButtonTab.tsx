@@ -59,6 +59,12 @@ const WorkflowButtonTab: React.FC<WorkflowButtonTabProps> = ({
     } | null>(null);
     const [newStepName, setNewStepName] = useState("");
     const [newOptionName, setNewOptionName] = useState("");
+    // 새 옵션 이름 변경을 위한 임시 상태
+    const [pendingOptionRename, setPendingOptionRename] = useState<{
+        stepId: string;
+        optionName: string;
+        prevOptionIds: string[];
+    } | null>(null);
     const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
     const [showPolicyModal, setShowPolicyModal] = useState(false);
     const moveMenuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -265,27 +271,32 @@ const WorkflowButtonTab: React.FC<WorkflowButtonTabProps> = ({
 
     const saveNewOption = () => {
         if (addingNewOption && newOptionName.trim()) {
-            // 새 옵션을 추가
-            onAddOption(addingNewOption.stepId);
-
-            // 상태를 먼저 정리
-            const optionName = newOptionName.trim();
             const stepId = addingNewOption.stepId;
+            const optionName = newOptionName.trim();
+            const step = steps.find((s) => s.id === stepId);
+            const prevOptionIds = step ? step.options.map(opt => opt.id) : [];
+
+            onAddOption(stepId);
             setAddingNewOption(null);
             setNewOptionName("");
-
-            // 새로 추가된 옵션의 이름을 설정 (약간의 지연 후)
-            setTimeout(() => {
-                const step = steps.find((s) => s.id === stepId);
-                if (step && step.options.length > 0) {
-                    const newOption = step.options[step.options.length - 1];
-                    if (newOption) {
-                        onUpdateOptionName(stepId, newOption.id, optionName);
-                    }
-                }
-            }, 100);
+            setPendingOptionRename({ stepId, optionName, prevOptionIds });
         }
     };
+
+    // 옵션 추가 후 steps가 변경되면 새 옵션 이름을 변경
+    useEffect(() => {
+        if (pendingOptionRename) {
+            const { stepId, optionName, prevOptionIds } = pendingOptionRename;
+            const updatedStep = steps.find((s) => s.id === stepId);
+            if (updatedStep) {
+                const newOption = updatedStep.options.find(opt => !prevOptionIds.includes(opt.id));
+                if (newOption) {
+                    onUpdateOptionName(stepId, newOption.id, optionName);
+                    setPendingOptionRename(null);
+                }
+            }
+        }
+    }, [steps, pendingOptionRename, onUpdateOptionName]);
 
     const cancelNewOption = () => {
         setAddingNewOption(null);

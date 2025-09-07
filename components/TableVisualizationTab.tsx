@@ -241,6 +241,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
             }
 
             // Default behavior: check original activation state
+            // Note: For enabled options, we still need to check if the step/option is originally active
             if (
                 pathActivations &&
                 Array.isArray(pathActivations[String(pathIndex)])
@@ -255,6 +256,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                 };
             }
 
+            // Final fallback: check base activation state
             const isActive = !!option.isActive && !!steps[stepIndex].isActive;
             return {
                 isActive,
@@ -315,13 +317,47 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
     // Memoize filtered combinations
     const filteredCombinations = React.useMemo(
         () =>
-            allCombinations.filter((row) =>
-                filters.every(
-                    (filter, idx) => filter === null || row[idx].id === filter
-                )
-            ),
+            allCombinations.map((row, originalIndex) => ({ row, originalIndex }))
+                .filter(({ row }) =>
+                    filters.every(
+                        (filter, idx) => filter === null || row[idx].id === filter
+                    )
+                ),
         [allCombinations, filters]
     );
+
+    // Deduplicated combinations to remove identical rows (based on final display state after constraints)
+    const deduplicatedCombinations = React.useMemo(() => {
+        const seenCombinations = new Set<string>();
+        const uniqueCombinations: Array<{
+            combination: typeof filteredCombinations[0]['row'];
+            originalIndex: number;
+        }> = [];
+
+        filteredCombinations.forEach(({ row, originalIndex }) => {
+            // Create a unique key based on the final display state (considering constraints)
+            const finalStateKey = row.map((option, stepIdx) => {
+                const cellStatus = getCellStatus(originalIndex, stepIdx, option);
+                
+                // Use the actual display text that will be shown in the table
+                if (!cellStatus.isActive && option.name !== "-") {
+                    return 'X'; // This is what shows in inactive cells
+                } else {
+                    return option.displayName || option.name; // This is what shows in active cells
+                }
+            }).join('|');
+            
+            if (!seenCombinations.has(finalStateKey)) {
+                seenCombinations.add(finalStateKey);
+                uniqueCombinations.push({
+                    combination: row,
+                    originalIndex: originalIndex
+                });
+            }
+        });
+
+        return uniqueCombinations;
+    }, [filteredCombinations, getCellStatus]);
 
     // Memoize option counts calculation
     const optionCounts = React.useMemo(
@@ -348,7 +384,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
 
     // 가상화 스크롤 계산
     const virtualResult = useVirtualScroll(
-        filteredCombinations.length,
+        deduplicatedCombinations.length,
         ITEM_HEIGHT,
         containerHeight,
         scrollTop
@@ -362,10 +398,10 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                 displayName: string;
                 isActive?: boolean;
             }[],
-            rowIndex: number
+            originalRowIndex: number
         ): boolean => {
             return row.every((option, stepIdx) =>
-                isCellActiveWithConstraints(rowIndex, stepIdx, option)
+                isCellActiveWithConstraints(originalRowIndex, stepIdx, option)
             );
         },
         [isCellActiveWithConstraints]
@@ -373,12 +409,12 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
 
     // Calculate scenario counts
     const scenarioStats = React.useMemo(() => {
-        const total = filteredCombinations.length;
+        const total = deduplicatedCombinations.length;
         let enabled = 0;
         let disabled = 0;
 
-        filteredCombinations.forEach((row, rowIndex) => {
-            const isActive = isRowActive(row, rowIndex);
+        deduplicatedCombinations.forEach(({ combination, originalIndex }) => {
+            const isActive = isRowActive(combination, originalIndex);
             if (isActive) {
                 enabled++;
             } else {
@@ -387,7 +423,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
         });
 
         return { total, enabled, disabled };
-    }, [filteredCombinations, isRowActive]);
+    }, [deduplicatedCombinations, isRowActive]);
 
     return (
         <div
@@ -426,6 +462,23 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                         </span>
                         <span style={{ fontWeight: 700, color: "#495057" }}>
                             {scenarioStats.total}
+                        </span>
+                        <span style={{ fontSize: "0.8rem", color: "#6c757d" }}>
+                            (중복 제거됨)
+                        </span>
+                    </div>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                        }}
+                    >
+                        <span style={{ fontWeight: 600, color: "#ffa500" }}>
+                            원본 조합:
+                        </span>
+                        <span style={{ fontWeight: 700, color: "#ffa500" }}>
+                            {filteredCombinations.length}
                         </span>
                     </div>
                     <div
@@ -662,14 +715,14 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                 return `<td>${safe}</td>`;
                             };
 
-                            const rowsHtml = filteredCombinations
-                                .map((row, rIdx) => {
-                                    const idxCell = `<td>${rIdx + 1}</td>`;
-                                    const cells = row
+                            const rowsHtml = deduplicatedCombinations
+                                .map(({ combination, originalIndex }, displayIndex) => {
+                                    const idxCell = `<td>${displayIndex + 1}</td>`;
+                                    const cells = combination
                                         .map((option, cIdx) => {
                                             const cellActive =
                                                 isCellActiveWithConstraints(
-                                                    rIdx,
+                                                    originalIndex,
                                                     cIdx,
                                                     option
                                                 );
@@ -744,12 +797,12 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                 ).writeText
                             ) {
                                 // fallback to CSV-like plain text
-                                const csv = filteredCombinations
-                                    .map((row, rIdx) => {
-                                        const cells = row.map((o, cIdx) => {
+                                const csv = deduplicatedCombinations
+                                    .map(({ combination, originalIndex }, displayIndex) => {
+                                        const cells = combination.map((o, cIdx) => {
                                             const cellActive =
                                                 isCellActiveWithConstraints(
-                                                    rIdx,
+                                                    originalIndex,
                                                     cIdx,
                                                     o
                                                 );
@@ -758,7 +811,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                                 : "X";
                                         });
                                         return [
-                                            String(rIdx + 1),
+                                            String(displayIndex + 1),
                                             ...cells,
                                         ].join("\t");
                                     })
@@ -900,10 +953,11 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                             </colgroup>
                             <tbody>
                                 {virtualResult.visibleItems.map((index) => {
-                                    const row = filteredCombinations[index];
-                                    if (!row) return null;
+                                    const item = deduplicatedCombinations[index];
+                                    if (!item) return null;
 
-                                    const active = isRowActive(row, index);
+                                    const { combination: row, originalIndex } = item;
+                                    const active = isRowActive(row, originalIndex);
                                     return (
                                         <tr
                                             key={index}
@@ -917,7 +971,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                             {row.map((option, stepIdx) => {
                                                 const cellStatus =
                                                     getCellStatus(
-                                                        index,
+                                                        originalIndex,
                                                         stepIdx,
                                                         option
                                                     );
@@ -1010,7 +1064,7 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                                             ) {
                                                                 onToggleOptionActive(
                                                                     String(
-                                                                        index
+                                                                        originalIndex
                                                                     ),
                                                                     stepIdx,
                                                                     !cellActive
