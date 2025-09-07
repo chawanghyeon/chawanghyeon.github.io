@@ -10,6 +10,142 @@ import {
 } from "../lib/types";
 import styles from "./ConstraintModal.module.css";
 
+// Helper function to check if two route conditions arrays are identical
+const areRouteConditionsEqual = (conditions1: RouteCondition[], conditions2: RouteCondition[]): boolean => {
+    if (conditions1.length !== conditions2.length) return false;
+    
+    const sorted1 = [...conditions1].sort((a, b) => 
+        a.stepIndex === b.stepIndex ? a.optionId.localeCompare(b.optionId) : a.stepIndex - b.stepIndex
+    );
+    const sorted2 = [...conditions2].sort((a, b) => 
+        a.stepIndex === b.stepIndex ? a.optionId.localeCompare(b.optionId) : a.stepIndex - b.stepIndex
+    );
+    
+    return sorted1.every((condition, index) => 
+        condition.stepIndex === sorted2[index].stepIndex && 
+        condition.optionId === sorted2[index].optionId
+    );
+};
+
+// Helper function to check if two condition expressions are equivalent
+const areConditionExpressionsEqual = (expr1?: ConditionExpression, expr2?: ConditionExpression): boolean => {
+    if (!expr1 && !expr2) return true;
+    if (!expr1 || !expr2) return false;
+    
+    if (expr1.type !== expr2.type) return false;
+    
+    if (expr1.type === "condition" && expr2.type === "condition") {
+        if (!expr1.condition || !expr2.condition) return false;
+        return expr1.condition.stepIndex === expr2.condition.stepIndex && 
+               expr1.condition.optionId === expr2.condition.optionId;
+    }
+    
+    if (expr1.type === "group" && expr2.type === "group") {
+        if (expr1.operator !== expr2.operator) return false;
+        if (!expr1.children || !expr2.children) return expr1.children === expr2.children;
+        if (expr1.children.length !== expr2.children.length) return false;
+        
+        return expr1.children.every((child, index) => 
+            areConditionExpressionsEqual(child, expr2.children![index])
+        );
+    }
+    
+    return false;
+};
+
+// Helper function to check if a constraint matches the given conditions and action
+const doesConstraintMatch = (
+    constraint: WorkflowConstraint,
+    routeConditions: RouteCondition[],
+    conditionExpression: ConditionExpression | undefined,
+    conditionOperator: LogicalOperator,
+    action: ConstraintActionType,
+    useAdvancedConditions: boolean
+): boolean => {
+    // Check action type
+    if (constraint.action !== action) return false;
+    
+    // Check condition structure
+    if (useAdvancedConditions) {
+        return areConditionExpressionsEqual(constraint.conditionExpression, conditionExpression);
+    } else {
+        return constraint.conditionOperator === conditionOperator &&
+               areRouteConditionsEqual(constraint.routeConditions || [], routeConditions);
+    }
+};
+
+// Helper function to merge target options from existing constraint with new targets
+const mergeConstraintTargets = (
+    existingConstraint: WorkflowConstraint,
+    newTargetPairs: Array<{stepIndex: number, optionId: string}>
+): {mergedConstraint: WorkflowConstraint, hasNewTargets: boolean} => {
+    const existingTargets = new Set<string>();
+    
+    // Collect existing targets
+    if (existingConstraint.targetStepIndex !== undefined && existingConstraint.targetOptionId) {
+        existingTargets.add(`${existingConstraint.targetStepIndex}:${existingConstraint.targetOptionId}`);
+    }
+    
+    if (existingConstraint.targetOptionIds) {
+        existingConstraint.targetOptionIds.forEach(optionId => {
+            if (existingConstraint.targetStepIndex !== undefined) {
+                existingTargets.add(`${existingConstraint.targetStepIndex}:${optionId}`);
+            }
+        });
+    }
+    
+    // Track which targets are actually new
+    let hasNewTargets = false;
+    const allTargets = new Set(existingTargets);
+    
+    newTargetPairs.forEach(target => {
+        const targetKey = `${target.stepIndex}:${target.optionId}`;
+        if (!allTargets.has(targetKey)) {
+            allTargets.add(targetKey);
+            hasNewTargets = true;
+        }
+    });
+    
+    // If no new targets, return the original constraint
+    if (!hasNewTargets) {
+        return {
+            mergedConstraint: existingConstraint,
+            hasNewTargets: false
+        };
+    }
+    
+    // Convert back to constraint format
+    const targetArray = Array.from(allTargets).map(target => {
+        const [stepIndex, optionId] = target.split(':');
+        return { stepIndex: parseInt(stepIndex), optionId };
+    });
+    
+    // Group by step index
+    const targetsByStep = targetArray.reduce((acc, target) => {
+        if (!acc[target.stepIndex]) {
+            acc[target.stepIndex] = [];
+        }
+        acc[target.stepIndex].push(target.optionId);
+        return acc;
+    }, {} as {[stepIndex: number]: string[]});
+    
+    // For now, we'll use the first step as the primary target
+    // In the future, we might want to support multi-step constraints
+    const primaryStepIndex = Math.min(...Object.keys(targetsByStep).map(Number));
+    const primaryOptionIds = targetsByStep[primaryStepIndex];
+    
+    return {
+        mergedConstraint: {
+            ...existingConstraint,
+            targetStepIndex: primaryStepIndex,
+            targetOptionId: primaryOptionIds[0], // Keep first option for compatibility
+            targetOptionIds: primaryOptionIds,
+            updatedAt: Date.now()
+        },
+        hasNewTargets: true
+    };
+};
+
 interface ConstraintModalProps {
     steps: Step[];
     constraints: WorkflowConstraint[];
@@ -57,6 +193,9 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
     const [constraintAction, setConstraintAction] = useState<ConstraintActionType>(
         existingConstraint?.action || "disable"
     );
+    
+    // Status message for user feedback
+    const [statusMessage, setStatusMessage] = useState<string>("");
     
     // Multi-selection state for targets
     const [selectedTargets, setSelectedTargets] = useState<{[stepIndex: number]: string[]}>(
@@ -505,24 +644,23 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
             });
         });
 
-        // Create base constraint template
-        const createConstraint = (targetStepIndex: number, targetOptionId: string, suffix?: string) => ({
-            name: targetPairs.length > 1 ? `${finalName}_${suffix || targetStepIndex}` : finalName,
-            description: description.trim(),
-            action: constraintAction,
-            targetStepIndex,
-            targetOptionIds: [targetOptionId], // Use array format for consistency
-            sourceStepIndex: -1, // Route-based constraints don't use source step
-            sourceOptionId: "", // Route-based constraints don't use source option
-            scope: "route-based" as const,
-            priority,
-            isActive: true,
-            createdAt: Date.now(),
-        });
-
         if (isEditing && constraintId && targetPairs.length === 1) {
             // Editing mode: update existing constraint
             const target = targetPairs[0];
+            const createConstraint = (targetStepIndex: number, targetOptionId: string, suffix?: string) => ({
+                name: targetPairs.length > 1 ? `${finalName}_${suffix || targetStepIndex}` : finalName,
+                description: description.trim(),
+                action: constraintAction,
+                targetStepIndex,
+                targetOptionIds: [targetOptionId], // Use array format for consistency
+                sourceStepIndex: -1, // Route-based constraints don't use source step
+                sourceOptionId: "", // Route-based constraints don't use source option
+                scope: "route-based" as const,
+                priority,
+                isActive: true,
+                createdAt: Date.now(),
+            });
+            
             const baseConstraint = createConstraint(target.stepIndex, target.optionId);
             
             if (useAdvancedConditions) {
@@ -543,40 +681,125 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
                 onUpdateConstraint(constraintId, constraintWithConditions);
             }
         } else {
-            // Creating new constraints or multiple targets
+            // Creating new constraints - check for existing policies to merge
             if (isEditing && constraintId) {
                 // Delete old constraint first when editing to multiple targets
                 onDeleteConstraint(constraintId);
             }
             
-            targetPairs.forEach((target) => {
-                const stepName = steps[target.stepIndex]?.displayName || steps[target.stepIndex]?.name || target.stepIndex;
-                const optionName = steps[target.stepIndex]?.options.find(opt => opt.id === target.optionId)?.displayName || target.optionId;
-                const suffix = `${stepName}_${optionName}`;
-                
-                const baseConstraint = createConstraint(target.stepIndex, target.optionId, suffix);
-                
-                if (useAdvancedConditions) {
-                    const constraintWithExpression = {
-                        ...baseConstraint,
-                        conditionExpression,
-                        routeConditions: [],
-                        conditionOperator: "AND" as LogicalOperator,
-                    };
-                    onAddConstraint(constraintWithExpression);
-                } else {
-                    const constraintWithConditions = {
-                        ...baseConstraint,
-                        routeConditions,
-                        conditionOperator,
-                        conditionExpression: undefined,
-                    };
-                    onAddConstraint(constraintWithConditions);
-                }
-            });
-        }
+            // Find existing constraints that match our conditions and action
+            const existingMatchingConstraint = constraints.find(constraint => 
+                doesConstraintMatch(
+                    constraint,
+                    routeConditions,
+                    conditionExpression,
+                    conditionOperator,
+                    constraintAction,
+                    useAdvancedConditions
+                )
+            );
 
-        onClose();
+            if (existingMatchingConstraint) {
+                // Merge with existing constraint
+                const mergeResult = mergeConstraintTargets(existingMatchingConstraint, targetPairs);
+                
+                if (mergeResult.hasNewTargets) {
+                    onUpdateConstraint(existingMatchingConstraint.id, mergeResult.mergedConstraint);
+                    setStatusMessage(`기존 정책 '${existingMatchingConstraint.name}'에 새로운 대상들이 병합되었습니다.`);
+                    setTimeout(() => onClose(), 1500); // Show message for 1.5 seconds before closing
+                    return; // Don't close immediately
+                } else {
+                    setStatusMessage(`모든 대상이 이미 기존 정책 '${existingMatchingConstraint.name}'에 포함되어 있어 생성을 건너뛰었습니다.`);
+                    setTimeout(() => onClose(), 2000); // Show message for 2 seconds before closing
+                    return; // Don't close immediately
+                }
+            } else {
+                // Create new constraint(s) - filter out targets that already exist in other constraints
+                const filteredTargetPairs = targetPairs.filter(target => {
+                    // Check if this specific target already exists in any other constraint with same conditions
+                    return !constraints.some(constraint => {
+                        if (!doesConstraintMatch(
+                            constraint,
+                            routeConditions,
+                            conditionExpression,
+                            conditionOperator,
+                            constraintAction,
+                            useAdvancedConditions
+                        )) {
+                            return false;
+                        }
+                        
+                        // Check if this target already exists in this constraint
+                        const targetKey = `${target.stepIndex}:${target.optionId}`;
+                        const existingTargets = new Set<string>();
+                        
+                        if (constraint.targetStepIndex !== undefined && constraint.targetOptionId) {
+                            existingTargets.add(`${constraint.targetStepIndex}:${constraint.targetOptionId}`);
+                        }
+                        
+                        if (constraint.targetOptionIds) {
+                            constraint.targetOptionIds.forEach(optionId => {
+                                if (constraint.targetStepIndex !== undefined) {
+                                    existingTargets.add(`${constraint.targetStepIndex}:${optionId}`);
+                                }
+                            });
+                        }
+                        
+                        return existingTargets.has(targetKey);
+                    });
+                });
+                
+                if (filteredTargetPairs.length === 0) {
+                    setStatusMessage('모든 대상이 이미 기존 정책들에 포함되어 있어 생성을 건너뛰었습니다.');
+                    setTimeout(() => onClose(), 2000); // Show message for 2 seconds before closing
+                    return; // Don't close immediately
+                } else {
+                    // Create new constraint(s) only for targets that don't exist
+                    filteredTargetPairs.forEach((target) => {
+                        const stepName = steps[target.stepIndex]?.displayName || steps[target.stepIndex]?.name || target.stepIndex;
+                        const optionName = steps[target.stepIndex]?.options.find(opt => opt.id === target.optionId)?.displayName || target.optionId;
+                        const suffix = `${stepName}_${optionName}`;
+                        
+                        const createConstraint = (targetStepIndex: number, targetOptionId: string, suffix?: string) => ({
+                            name: filteredTargetPairs.length > 1 ? `${finalName}_${suffix || targetStepIndex}` : finalName,
+                            description: description.trim(),
+                            action: constraintAction,
+                            targetStepIndex,
+                            targetOptionIds: [targetOptionId], // Use array format for consistency
+                            sourceStepIndex: -1, // Route-based constraints don't use source step
+                            sourceOptionId: "", // Route-based constraints don't use source option
+                            scope: "route-based" as const,
+                            priority,
+                            isActive: true,
+                            createdAt: Date.now(),
+                        });
+                        
+                        const baseConstraint = createConstraint(target.stepIndex, target.optionId, suffix);
+                        
+                        if (useAdvancedConditions) {
+                            const constraintWithExpression = {
+                                ...baseConstraint,
+                                conditionExpression,
+                                routeConditions: [],
+                                conditionOperator: "AND" as LogicalOperator,
+                            };
+                            onAddConstraint(constraintWithExpression);
+                        } else {
+                            const constraintWithConditions = {
+                                ...baseConstraint,
+                                routeConditions,
+                                conditionOperator,
+                                conditionExpression: undefined,
+                            };
+                            onAddConstraint(constraintWithConditions);
+                        }
+                    });
+                    
+                    // Close modal after successful creation
+                    onClose();
+                }
+            }
+        }
     };
 
     const handleDelete = () => {
@@ -648,7 +871,12 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
                                 min="1"
                                 max="100"
                                 value={priority}
-                                onChange={(e) => setPriority(parseInt(e.target.value) || 50)}
+                                onChange={(e) => {
+                                    const value = parseInt(e.target.value) || 50;
+                                    // Enforce 1-100 range
+                                    const clampedValue = Math.min(100, Math.max(1, value));
+                                    setPriority(clampedValue);
+                                }}
                                 className={styles.input}
                             />
                             <small className={styles.helpText}>
@@ -885,12 +1113,17 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
 
                     {/* Form Actions */}
                     <div className={styles.actions}>
-                        {!isValid() && (
+                        {statusMessage && (
+                            <div className={styles.statusMessage}>
+                                {statusMessage}
+                            </div>
+                        )}
+                        {!isValid() && !statusMessage && (
                             <div className={styles.validationMessage}>
                                 정책을 생성하려면 조건과 대상을 모두 설정해야 합니다.
                             </div>
                         )}
-                        {isEditing && (
+                        {isEditing && !statusMessage && (
                             <button
                                 type="button"
                                 onClick={handleDelete}
@@ -899,20 +1132,24 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
                                 삭제
                             </button>
                         )}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className={styles.cancelButton}
-                        >
-                            취소
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={!isValid()}
-                            className={styles.submitButton}
-                        >
-                            {isEditing ? "수정" : "생성"}
-                        </button>
+                        {!statusMessage && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className={styles.cancelButton}
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={!isValid()}
+                                    className={styles.submitButton}
+                                >
+                                    {isEditing ? "수정" : "생성"}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </form>
             </div>

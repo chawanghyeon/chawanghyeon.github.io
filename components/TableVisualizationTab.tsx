@@ -980,30 +980,14 @@ const TableVisualizationTab: React.FC<TableVisualizationTabProps> = ({
                                                             }
                                                         }}
                                                     >
-                                                        {!cellActive &&
-                                                        option.name !== "-" ? (
-                                                            <div className="cell-inner">
-                                                                {cellStatus.status ===
-                                                                "disabled-by-constraint"
-                                                                    ? "🚫"
-                                                                    : "X"}
-                                                            </div>
+                                                        {!cellActive && option.name !== "-" ? (
+                                                            <div className="cell-inner">X</div>
                                                         ) : (
                                                             <TextDetailTooltip
-                                                                text={
-                                                                    option.displayName ||
-                                                                    option.name
-                                                                }
+                                                                text={option.displayName || option.name}
                                                             >
                                                                 <div className="cell-inner">
-                                                                    {cellStatus.status ===
-                                                                        "required-by-constraint" &&
-                                                                        "⭐ "}
-                                                                    {cellStatus.status ===
-                                                                        "enabled-by-constraint" &&
-                                                                        "✓ "}
-                                                                    {option.displayName ||
-                                                                        option.name}
+                                                                    {option.displayName || option.name}
                                                                 </div>
                                                             </TextDetailTooltip>
                                                         )}

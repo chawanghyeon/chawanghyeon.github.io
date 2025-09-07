@@ -18,42 +18,43 @@ import {
 
 /**
  * Calculate default priority based on constraint scope and action
- * Higher values = higher priority (Zendesk style)
+ * Priority range: 1-100, where higher values = higher priority
  */
 export function calculateDefaultPriority(
     constraint: Partial<WorkflowConstraint>
 ): number {
-    let basePriority = 0;
+    let basePriority = 50; // Default middle priority
 
-    // Scope-based priority (more specific = higher priority)
+    // Scope-based priority adjustment (more specific = higher priority)
     switch (constraint.scope) {
         case "conditional-route":
-            basePriority = 100;
+            basePriority = 80; // High priority for complex conditions
             break;
         case "route-based":
-            basePriority = 50;
+            basePriority = 60; // Medium-high priority for route-based
             break;
         case "global":
         default:
-            basePriority = 10;
+            basePriority = 40; // Lower priority for global constraints
             break;
     }
 
     // Action-based priority adjustment
     switch (constraint.action) {
         case "require":
-            basePriority += 20; // Require is most important
+            basePriority += 10; // Require is most important
             break;
         case "enable":
-            basePriority += 10; // Enable overrides disable
+            basePriority += 5; // Enable has medium importance
             break;
         case "disable":
         default:
-            basePriority += 0; // Disable is least priority
+            basePriority += 0; // Disable has base priority
             break;
     }
 
-    return basePriority;
+    // Ensure priority stays within 1-100 range
+    return Math.min(100, Math.max(1, basePriority));
 }
 
 /**
@@ -171,10 +172,10 @@ export function applyConstraintsWithPriority(
         requiredOptions[stepIndex] = new Set();
     });
 
-    // Get active constraints and sort by priority (LOWER numbers = higher priority, applied FIRST)
+    // Get active constraints and sort by priority (HIGHER numbers = higher priority, applied FIRST)
     const activeConstraints = Object.values(constraints)
         .filter((constraint) => constraint.isActive)
-        .sort((a, b) => (a.priority || 999) - (b.priority || 999));
+        .sort((a, b) => (b.priority || 50) - (a.priority || 50));
 
     // Track applied actions per target to detect conflicts
     const appliedActions: {
@@ -206,7 +207,7 @@ export function applyConstraintsWithPriority(
         appliedActions[stepIndex][optionId].push({
             constraint,
             action,
-            priority: constraint.priority || 999,
+            priority: constraint.priority || 50,
             scope: constraint.scope,
         });
     };
@@ -223,7 +224,7 @@ export function applyConstraintsWithPriority(
         // Check for conflicts with same priority level
         const actionsOnTarget = appliedActions[stepIndex][optionId] || [];
         const samePriorityActions = actionsOnTarget.filter(
-            (a) => a.priority === (constraint.priority || 999)
+            (a) => a.priority === (constraint.priority || 50)
         );
 
         if (samePriorityActions.length > 1) {
@@ -240,7 +241,7 @@ export function applyConstraintsWithPriority(
                     targetOption: optionId,
                     conflictType: "priority",
                     reason: `Multiple actions on same target with same priority ${
-                        constraint.priority || 999
+                        constraint.priority || 50
                     }`,
                     resolution: "priority",
                     conflictLevel: "error",
@@ -449,7 +450,7 @@ export function normalizePriorities(constraints: ConstraintMap): {
     const sorted = constraintEntries
         .map(([id, constraint]) => ({
             id,
-            priority: constraint.priority || 999,
+            priority: constraint.priority || 50,
         }))
         .sort((a, b) => a.priority - b.priority);
 
@@ -493,7 +494,7 @@ export function detectSamePriorityConflicts(
     Object.values(constraints).forEach((constraint) => {
         if (!constraint.isActive) return;
 
-        const priority = constraint.priority || 999;
+        const priority = constraint.priority || 50;
         if (!constraintsByPriority[priority]) {
             constraintsByPriority[priority] = [];
         }

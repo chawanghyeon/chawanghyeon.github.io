@@ -130,6 +130,19 @@
     margin-bottom: 16px;
 }
 
+/* Status message */
+.statusMessage {
+    background: #f0f9ff;
+    border: 1px solid #7dd3fc;
+    color: #0369a1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 500;
+}
+
 .input {
     width: 100%;
     padding: 12px 16px;

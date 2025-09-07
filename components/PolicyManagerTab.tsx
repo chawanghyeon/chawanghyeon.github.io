@@ -25,32 +25,6 @@ function formatConditionExpression(expression: ConditionExpression, steps: Step[
     return "";
 }
 
-// Helper function to generate detailed description for constraint
-function generateConstraintDescription(constraint: WorkflowConstraint, steps: Step[]): string {
-    let description = constraint.description || "";
-    
-    // Add condition information if complex condition exists
-    if (constraint.conditionExpression) {
-        const conditionText = formatConditionExpression(constraint.conditionExpression, steps);
-        if (conditionText) {
-            description += (description ? " | " : "") + `조건: ${conditionText}`;
-        }
-    }
-    
-    // Add simple route conditions for backward compatibility
-    if (constraint.routeConditions && constraint.routeConditions.length > 0) {
-        const routeTexts = constraint.routeConditions.map(rc => {
-            const step = steps[rc.stepIndex];
-            const option = step?.options.find(opt => opt.id === rc.optionId);
-            const stepName = step?.displayName || step?.name || `단계${rc.stepIndex + 1}`;
-            const optionName = option?.displayName || option?.name || rc.optionId;
-            return `${stepName}: ${optionName}`;
-        });
-        description += (description ? " | " : "") + `경로조건: ${routeTexts.join(", ")}`;
-    }
-    
-    return description || "설명 없음";
-}
 
 interface PolicyManagerTabProps {
     steps: Step[];
@@ -72,7 +46,6 @@ interface PolicyRule {
     targetOptionNames: string[];
     status: "active" | "inactive" | "unused";
     priority: number;
-    description: string;
     hasConflicts: boolean;
     conflictsWith: string[];
     conflictType?: "same-priority" | "circular-reference" | "target-overlap";
@@ -219,8 +192,7 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                         "[삭제된 단계]",
                     targetOptionNames: targetOptions.length > 0 ? targetOptions : ["대상 없음"],
                     status,
-                    priority: constraint.priority || 1,
-                    description: generateConstraintDescription(constraint, steps),
+                    priority: constraint.priority || 50,
                     hasConflicts: false,
                     conflictsWith: [] as string[],
                     conflictType: undefined as
@@ -313,7 +285,6 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                     if (
                         !rule.ruleId.toLowerCase().includes(query) &&
                         !rule.targetStepName.toLowerCase().includes(query) &&
-                        !rule.description.toLowerCase().includes(query) &&
                         !(rule.conditionSummary?.toLowerCase().includes(query))
                     ) {
                         return false;
@@ -807,7 +778,6 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                 <th>대상 옵션들</th>
                                 <th>상태</th>
                                 <th>우선순위</th>
-                                <th>설명</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
@@ -934,7 +904,7 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                             <input
                                                 type="number"
                                                 min="1"
-                                                max="999"
+                                                max="100"
                                                 value={rule.priority}
                                                 onChange={(e) => {
                                                     const newPriority =
@@ -942,9 +912,11 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                                             e.target.value
                                                         );
                                                     if (!isNaN(newPriority)) {
+                                                        // Enforce 1-100 range
+                                                        const clampedValue = Math.min(100, Math.max(1, newPriority));
                                                         handlePriorityChange(
                                                             rule.id,
-                                                            newPriority
+                                                            clampedValue
                                                         );
                                                     }
                                                 }}
@@ -972,11 +944,6 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                                 {rule.priority}
                                             </span>
                                         )}
-                                    </td>
-                                    <td className={styles.descriptionCell}>
-                                        <span title={rule.description}>
-                                            {rule.description}
-                                        </span>
                                     </td>
                                     <td>
                                         <div className={styles.actionButtons}>
@@ -1058,10 +1025,6 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                               "inactive"
                                             ? "비활성"
                                             : "사용 안함"}
-                                    </p>
-                                    <p>
-                                        <strong>설명:</strong>{" "}
-                                        {simulatorRule.description}
                                     </p>
                                 </div>
                                 <div className={styles.simulatorSection}>
