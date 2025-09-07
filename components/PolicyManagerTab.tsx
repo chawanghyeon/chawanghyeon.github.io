@@ -42,7 +42,11 @@ interface PolicyManagerTabProps {
 interface PolicyRule {
     id: string;
     ruleId: string;
-    targetStepName: string;
+    targetStepName: {
+        display: string;
+        details: string;
+        isMultiStep: boolean;
+    };
     targetOptionNames: string[];
     status: "active" | "inactive" | "unused";
     priority: number;
@@ -113,51 +117,91 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
     const policyRules = useMemo((): PolicyRule[] => {
         const rules = Object.entries(constraints).map(
             ([id, constraint]) => {
-                const targetStep =
-                    constraint.targetStepIndex !== undefined
-                        ? steps[constraint.targetStepIndex]
-                        : undefined;
-                
-                // Handle both targetOptionIds (array) and targetOptionId (single) for backward compatibility
-                let targetOptionIds: string[] = [];
-                if (constraint.targetOptionIds && constraint.targetOptionIds.length > 0) {
-                    targetOptionIds = constraint.targetOptionIds;
-                } else if (constraint.targetOptionId) {
-                    targetOptionIds = [constraint.targetOptionId];
-                }
-                
-                const targetOptions = targetOptionIds.map((optId) => {
-                    const targetOption = targetStep?.options.find(
-                        (opt) => opt.id === optId
-                    );
-                    return (
-                        targetOption?.displayName ||
-                        targetOption?.name ||
-                        `[삭제된 옵션: ${optId.slice(-8)}]`
-                    );
-                });
-
-                // If no specific options are targeted, show "모든 옵션"
-                if (targetOptions.length === 0 && targetStep) {
-                    targetOptions.push("모든 옵션");
-                }
-
-                // Check if target step/options exist
-                const isTargetMissing =
-                    constraint.targetStepIndex !== undefined &&
-                    (!targetStep ||
-                        (targetOptionIds.length > 0 &&
-                            targetOptionIds.some(
-                                (optId) =>
-                                    !targetStep.options.find(
-                                        (opt) => opt.id === optId
-                                    )
-                            )));
-
-                // Determine missing reason
+                // Handle new unified targetPairs structure
+                let targetStepNames: string[] = [];
+                let targetOptionNames: string[] = [];
+                let isTargetMissing = false;
                 let missingReason = "";
-                if (isTargetMissing) {
-                    missingReason = "대상 단계/옵션이 존재하지 않음";
+
+                if (constraint.targetPairs && constraint.targetPairs.length > 0) {
+                    // New unified multi-step target structure
+                    const stepGroups = constraint.targetPairs.reduce((acc, target) => {
+                        const step = steps[target.stepIndex];
+                        const stepName = step?.displayName || step?.name || `[삭제된 단계 ${target.stepIndex}]`;
+                        
+                        if (!acc[stepName]) {
+                            acc[stepName] = [];
+                        }
+                        
+                        const option = step?.options.find(opt => opt.id === target.optionId);
+                        const optionName = option?.displayName || option?.name || `[삭제된 옵션: ${target.optionId.slice(-8)}]`;
+                        acc[stepName].push(optionName);
+                        
+                        // Check if target is missing
+                        if (!step || !option) {
+                            isTargetMissing = true;
+                        }
+                        
+                        return acc;
+                    }, {} as {[stepName: string]: string[]});
+                    
+                    targetStepNames = Object.keys(stepGroups);
+                    targetOptionNames = Object.entries(stepGroups).map(([stepName, options]) => 
+                        `${stepName}: [${options.join(', ')}]`
+                    );
+                    
+                    if (isTargetMissing) {
+                        missingReason = "일부 대상 단계/옵션이 존재하지 않음";
+                    }
+                } else {
+                    // Legacy single-step target structure for backward compatibility
+                    const targetStep =
+                        constraint.targetStepIndex !== undefined
+                            ? steps[constraint.targetStepIndex]
+                            : undefined;
+                    
+                    // Handle both targetOptionIds (array) and targetOptionId (single) for backward compatibility
+                    let targetOptionIds: string[] = [];
+                    if (constraint.targetOptionIds && constraint.targetOptionIds.length > 0) {
+                        targetOptionIds = constraint.targetOptionIds;
+                    } else if (constraint.targetOptionId) {
+                        targetOptionIds = [constraint.targetOptionId];
+                    }
+                    
+                    const targetOptions = targetOptionIds.map((optId) => {
+                        const targetOption = targetStep?.options.find(
+                            (opt) => opt.id === optId
+                        );
+                        return (
+                            targetOption?.displayName ||
+                            targetOption?.name ||
+                            `[삭제된 옵션: ${optId.slice(-8)}]`
+                        );
+                    });
+
+                    // If no specific options are targeted, show "모든 옵션"
+                    if (targetOptions.length === 0 && targetStep) {
+                        targetOptions.push("모든 옵션");
+                    }
+
+                    targetStepNames = [targetStep?.displayName || targetStep?.name || "[삭제된 단계]"];
+                    targetOptionNames = targetOptions.length > 0 ? targetOptions : ["대상 없음"];
+
+                    // Check if target step/options exist
+                    isTargetMissing =
+                        constraint.targetStepIndex !== undefined &&
+                        (!targetStep ||
+                            (targetOptionIds.length > 0 &&
+                                targetOptionIds.some(
+                                    (optId) =>
+                                        !targetStep.options.find(
+                                            (opt) => opt.id === optId
+                                        )
+                                )));
+
+                    if (isTargetMissing) {
+                        missingReason = "대상 단계/옵션이 존재하지 않음";
+                    }
                 }
 
                 // Determine status
@@ -186,11 +230,18 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                 return {
                     id,
                     ruleId: `POL-${id.slice(-8)}`,
-                    targetStepName:
-                        targetStep?.displayName ||
-                        targetStep?.name ||
-                        "[삭제된 단계]",
-                    targetOptionNames: targetOptions.length > 0 ? targetOptions : ["대상 없음"],
+                    targetStepName: targetStepNames.length > 1 
+                        ? {
+                            display: `다중 단계 (${targetStepNames.length}개)`,
+                            details: targetStepNames.join(", "),
+                            isMultiStep: true
+                        }
+                        : {
+                            display: targetStepNames[0],
+                            details: targetStepNames[0],
+                            isMultiStep: false
+                        },
+                    targetOptionNames,
                     status,
                     priority: constraint.priority || 50,
                     hasConflicts: false,
@@ -284,7 +335,8 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                     const query = searchQuery.toLowerCase();
                     if (
                         !rule.ruleId.toLowerCase().includes(query) &&
-                        !rule.targetStepName.toLowerCase().includes(query) &&
+                        !rule.targetStepName.display.toLowerCase().includes(query) &&
+                        !rule.targetStepName.details.toLowerCase().includes(query) &&
                         !(rule.conditionSummary?.toLowerCase().includes(query))
                     ) {
                         return false;
@@ -298,7 +350,8 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
 
                 // 단계 필터
                 if (stepFilter !== "all") {
-                    if (!rule.targetStepName.includes(stepFilter)) {
+                    if (!rule.targetStepName.display.includes(stepFilter) && 
+                        !rule.targetStepName.details.includes(stepFilter)) {
                         return false;
                     }
                 }
@@ -342,7 +395,7 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
         // 고유 단계 목록 수집
         const stepNames = new Set<string>();
         policyRules.forEach((rule) => {
-            stepNames.add(rule.targetStepName);
+            stepNames.add(rule.targetStepName.display);
         });
         return Array.from(stepNames).sort();
     }, [policyRules]);
@@ -858,22 +911,63 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                             {rule.conditionSummary || "항상 적용"}
                                         </span>
                                     </td>
-                                    <td>{rule.targetStepName}</td>
+                                    <td>
+                                        <div className={styles.targetStepCell}>
+                                            <span 
+                                                className={rule.targetStepName.isMultiStep ? styles.multiStepLabel : styles.singleStepLabel}
+                                                title={rule.targetStepName.details}
+                                            >
+                                                {rule.targetStepName.display}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td>
                                         <div className={styles.optionsList}>
                                             {rule.targetOptionNames.map(
-                                                (option, index) => (
-                                                    <span
-                                                        key={index}
-                                                        className={
-                                                            option === "대상 없음" 
-                                                                ? styles.noOptionsText
-                                                                : styles.optionTag
-                                                        }
-                                                    >
-                                                        {option}
-                                                    </span>
-                                                )
+                                                (option, index) => {
+                                                    // Check if this is a multi-step format like "Step3: [옵션1, 옵션2]"
+                                                    if (option.includes(": [") && option.includes("]")) {
+                                                        return (
+                                                            <div
+                                                                key={index}
+                                                                className={styles.multiStepTarget}
+                                                            >
+                                                                <span className={styles.stepLabel}>
+                                                                    {option.split(": [")[0]}:
+                                                                </span>
+                                                                <div className={styles.optionsGroup}>
+                                                                    {option
+                                                                        .split(": [")[1]
+                                                                        .replace("]", "")
+                                                                        .split(", ")
+                                                                        .map((opt, optIndex) => (
+                                                                            <span
+                                                                                key={optIndex}
+                                                                                className={styles.optionTag}
+                                                                            >
+                                                                                {opt}
+                                                                            </span>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    } else {
+                                                        // Legacy single step format
+                                                        return (
+                                                            <span
+                                                                key={index}
+                                                                className={
+                                                                    option === "대상 없음" 
+                                                                        ? styles.noOptionsText
+                                                                        : styles.optionTag
+                                                                }
+                                                            >
+                                                                {option}
+                                                            </span>
+                                                        );
+                                                    }
+                                                }
                                             )}
                                         </div>
                                     </td>
@@ -1008,7 +1102,7 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                     <h4>규칙 정보</h4>
                                     <p>
                                         <strong>대상:</strong>{" "}
-                                        {simulatorRule.targetStepName} →{" "}
+                                        {simulatorRule.targetStepName.display} →{" "}
                                         {simulatorRule.targetOptionNames.join(
                                             ", "
                                         )}
@@ -1107,7 +1201,7 @@ const PolicyManagerTab: React.FC<PolicyManagerTabProps> = ({
                                                         <li key={index}>
                                                             &quot;
                                                             {
-                                                                simulatorRule.targetStepName
+                                                                simulatorRule.targetStepName.display
                                                             }
                                                             &quot; 단계의 &quot;
                                                             {option}&quot;

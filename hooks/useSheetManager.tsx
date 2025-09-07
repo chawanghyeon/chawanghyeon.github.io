@@ -5,6 +5,7 @@ import {
     Step,
     TabType,
     WorkflowConstraint,
+    ConditionExpression,
 } from "../lib/types";
 import {
     generatePathActivations,
@@ -215,6 +216,26 @@ export const useSheetManager = () => {
         [steps]
     );
 
+    // Helper function to check if a condition expression contains a specific step/option
+    const containsCondition = useCallback((
+        expression: ConditionExpression, 
+        stepIndex: number, 
+        optionId: string
+    ): boolean => {
+        if (!expression) return false;
+        
+        if (expression.type === "condition" && expression.condition) {
+            return expression.condition.stepIndex === stepIndex && 
+                   expression.condition.optionId === optionId;
+        } else if (expression.type === "group" && expression.children) {
+            return expression.children.some((child: ConditionExpression) => 
+                containsCondition(child, stepIndex, optionId)
+            );
+        }
+        
+        return false;
+    }, []);
+
     // Helper function to find constraints that would be affected by step operations
     const findAffectedConstraints = useCallback(
         (
@@ -236,20 +257,31 @@ export const useSheetManager = () => {
                     if (insertIndex !== undefined) {
                         // Find constraints that reference steps at or after the insertion point
                         affected = constraintArray.filter(
-                            (constraint) =>
-                                constraint.sourceStepIndex >= insertIndex ||
-                                (constraint.targetStepIndex !== undefined &&
-                                    constraint.targetStepIndex >=
-                                        insertIndex) ||
-                                (constraint.targetSteps &&
-                                    constraint.targetSteps.some(
-                                        (stepIdx) => stepIdx >= insertIndex
-                                    )) ||
-                                (constraint.routeConditions &&
-                                    constraint.routeConditions.some(
-                                        (condition) =>
-                                            condition.stepIndex >= insertIndex
-                                    ))
+                            (constraint) => {
+                                // Check new targetPairs structure
+                                if (constraint.targetPairs && constraint.targetPairs.length > 0) {
+                                    const isAffectedByTargetPairs = constraint.targetPairs.some(
+                                        target => target.stepIndex >= insertIndex
+                                    );
+                                    if (isAffectedByTargetPairs) return true;
+                                }
+                                
+                                // Check legacy structures
+                                return (
+                                    constraint.sourceStepIndex >= insertIndex ||
+                                    (constraint.targetStepIndex !== undefined &&
+                                        constraint.targetStepIndex >= insertIndex) ||
+                                    (constraint.targetSteps &&
+                                        constraint.targetSteps.some(
+                                            (stepIdx) => stepIdx >= insertIndex
+                                        )) ||
+                                    (constraint.routeConditions &&
+                                        constraint.routeConditions.some(
+                                            (condition) =>
+                                                condition.stepIndex >= insertIndex
+                                        ))
+                                );
+                            }
                         );
                     }
                     break;
@@ -259,18 +291,28 @@ export const useSheetManager = () => {
                     if (stepIndex !== undefined) {
                         // Find constraints that reference the step being deleted
                         affected = constraintArray.filter(
-                            (constraint) =>
-                                constraint.sourceStepIndex === stepIndex ||
-                                constraint.targetStepIndex === stepIndex ||
-                                (constraint.targetSteps &&
-                                    constraint.targetSteps.includes(
-                                        stepIndex
-                                    )) ||
-                                (constraint.routeConditions &&
-                                    constraint.routeConditions.some(
-                                        (condition) =>
-                                            condition.stepIndex === stepIndex
-                                    ))
+                            (constraint) => {
+                                // Check new targetPairs structure
+                                if (constraint.targetPairs && constraint.targetPairs.length > 0) {
+                                    const isAffectedByTargetPairs = constraint.targetPairs.some(
+                                        target => target.stepIndex === stepIndex
+                                    );
+                                    if (isAffectedByTargetPairs) return true;
+                                }
+                                
+                                // Check legacy structures
+                                return (
+                                    constraint.sourceStepIndex === stepIndex ||
+                                    constraint.targetStepIndex === stepIndex ||
+                                    (constraint.targetSteps &&
+                                        constraint.targetSteps.includes(stepIndex)) ||
+                                    (constraint.routeConditions &&
+                                        constraint.routeConditions.some(
+                                            (condition) =>
+                                                condition.stepIndex === stepIndex
+                                        ))
+                                );
+                            }
                         );
                     }
                     break;
@@ -285,31 +327,35 @@ export const useSheetManager = () => {
                     if (optionStepIndex !== undefined && optionId) {
                         // Find constraints that reference the option being deleted
                         affected = constraintArray.filter(
-                            (constraint) =>
-                                (constraint.sourceStepIndex ===
-                                    optionStepIndex &&
-                                    constraint.sourceOptionId === optionId) ||
-                                (constraint.targetStepIndex ===
-                                    optionStepIndex &&
-                                    constraint.targetOptionId === optionId) ||
-                                (constraint.targetStepIndex ===
-                                    optionStepIndex &&
-                                    constraint.targetOptionIds?.includes(
-                                        optionId
-                                    )) ||
-                                (constraint.targetSteps?.includes(
-                                    optionStepIndex
-                                ) &&
-                                    constraint.targetOptionIds?.includes(
-                                        optionId
-                                    )) ||
-                                (constraint.routeConditions &&
-                                    constraint.routeConditions.some(
-                                        (condition) =>
-                                            condition.stepIndex ===
-                                                optionStepIndex &&
-                                            condition.optionId === optionId
-                                    ))
+                            (constraint) => {
+                                // Check new unified targetPairs structure
+                                if (constraint.targetPairs && constraint.targetPairs.length > 0) {
+                                    const isAffectedByTargetPairs = constraint.targetPairs.some(
+                                        target => target.stepIndex === optionStepIndex && target.optionId === optionId
+                                    );
+                                    if (isAffectedByTargetPairs) return true;
+                                }
+                                
+                                // Check legacy structures for backward compatibility
+                                return (
+                                    (constraint.sourceStepIndex === optionStepIndex &&
+                                        constraint.sourceOptionId === optionId) ||
+                                    (constraint.targetStepIndex === optionStepIndex &&
+                                        constraint.targetOptionId === optionId) ||
+                                    (constraint.targetStepIndex === optionStepIndex &&
+                                        constraint.targetOptionIds?.includes(optionId)) ||
+                                    (constraint.targetSteps?.includes(optionStepIndex) &&
+                                        constraint.targetOptionIds?.includes(optionId)) ||
+                                    (constraint.routeConditions &&
+                                        constraint.routeConditions.some(
+                                            (condition) =>
+                                                condition.stepIndex === optionStepIndex &&
+                                                condition.optionId === optionId
+                                        )) ||
+                                    (constraint.conditionExpression &&
+                                        containsCondition(constraint.conditionExpression, optionStepIndex, optionId))
+                                );
+                            }
                         );
                     }
                     break;
@@ -317,7 +363,7 @@ export const useSheetManager = () => {
 
             return affected;
         },
-        [constraints]
+        [constraints, containsCondition]
     );
 
     // Helper function to check affected constraints and show confirmation
@@ -809,9 +855,8 @@ export const useSheetManager = () => {
     );
 
     // These functions no longer modify stored pathActivations since we generate them dynamically
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const toggleOptionActive = useCallback(
-        (_pathKey: string, _stepIdx: number, _isActive: boolean) => {
+        () => {
             // This function is called from the table UI but since we generate pathActivations dynamically,
             // we need to update the underlying step/option data instead
             console.warn(

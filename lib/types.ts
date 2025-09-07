@@ -106,7 +106,7 @@ export interface ConstraintException {
     path: RouteCondition[]; // Required path conditions for this exception to apply
     operator: LogicalOperator; // How to combine path conditions
     action: ConstraintActionType; // Action to take when exception conditions are met
-    target: Array<{ step: number; option: string }>; // Which options to affect
+    target: Array<{ stepIndex: number; optionId: string }>; // Which options to affect (consistent with targetPairs)
     priority?: number; // Priority for this exception (higher = more important)
     isActive: boolean;
     createdAt: number;
@@ -122,6 +122,7 @@ export interface WorkflowConstraint {
     targetOptionId?: string; // For previous-step and next-step constraints
     targetSteps?: number[]; // For range-skip: allow multiple target step indexes / ranges
     targetOptionIds?: string[]; // For range-skip: allow listing specific option ids to disable in target steps
+    targetPairs?: Array<{stepIndex: number, optionId: string}>; // Complete multi-step target information
     startStep?: number; // For range-skip constraints
     endStep?: number; // For range-skip constraints
 

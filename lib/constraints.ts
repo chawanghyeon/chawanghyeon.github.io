@@ -354,8 +354,26 @@ export function applyConstraintsWithPriority(
         // Apply constraint to target step(s) and option(s)
         const action = constraint.action || "disable";
 
-        // Handle single target step
-        if (constraint.targetStepIndex !== undefined) {
+        // Priority 1: Handle new unified targetPairs (complete multi-step target information)
+        if (constraint.targetPairs && constraint.targetPairs.length > 0) {
+            constraint.targetPairs.forEach((target) => {
+                if (target.stepIndex >= 0 && target.stepIndex < steps.length) {
+                    const targetStep = steps[target.stepIndex];
+                    const targetOption = targetStep.options.find(opt => opt.id === target.optionId);
+                    
+                    if (targetOption) {
+                        applyActionWithConflictDetection(
+                            target.stepIndex,
+                            target.optionId,
+                            constraint,
+                            action
+                        );
+                    }
+                }
+            });
+        }
+        // Priority 2: Handle single target step (legacy and backward compatibility)
+        else if (constraint.targetStepIndex !== undefined) {
             const targetStep = steps[constraint.targetStepIndex];
             if (!targetStep) {
                 return; // Skip if target step is missing
@@ -390,9 +408,8 @@ export function applyConstraintsWithPriority(
                 });
             }
         }
-
-        // Handle multiple target steps
-        if (constraint.targetSteps && constraint.targetSteps.length > 0) {
+        // Priority 3: Handle multiple target steps (legacy multi-step support)
+        else if (constraint.targetSteps && constraint.targetSteps.length > 0) {
             constraint.targetSteps.forEach((stepIndex) => {
                 if (stepIndex >= 0 && stepIndex < steps.length) {
                     const targetStep = steps[stepIndex];
@@ -717,6 +734,19 @@ export const updateConstraintIndices = (
             );
         }
 
+        // Update targetPairs array (new unified structure)
+        if (constraint.targetPairs) {
+            updatedConstraint.targetPairs = constraint.targetPairs.map(
+                (target) => ({
+                    ...target,
+                    stepIndex:
+                        target.stepIndex >= insertIndex
+                            ? target.stepIndex + 1
+                            : target.stepIndex,
+                })
+            );
+        }
+
         // Update route conditions
         if (constraint.routeConditions) {
             updatedConstraint.routeConditions = constraint.routeConditions.map(
@@ -778,6 +808,17 @@ export const cleanInvalidConstraints = (
             }
         }
 
+        // Validate new targetPairs structure
+        if (constraint.targetPairs) {
+            const invalidTargetPairs = constraint.targetPairs.some(
+                (target) => target.stepIndex >= steps.length ||
+                           !steps[target.stepIndex]?.options.some(opt => opt.id === target.optionId)
+            );
+            if (invalidTargetPairs) {
+                isValid = false;
+            }
+        }
+
         if (isValid) {
             cleaned[id] = constraint;
         }
@@ -816,6 +857,11 @@ export const adjustConstraintIndicesForStepDeletion = (
             shouldKeep = false;
         }
 
+        // Check new targetPairs structure
+        if (constraint.targetPairs?.some(target => target.stepIndex === deletedIndex)) {
+            shouldKeep = false;
+        }
+
         if (shouldKeep) {
             // Adjust indices for steps after the deleted one
             if (constraint.sourceStepIndex > deletedIndex) {
@@ -837,6 +883,19 @@ export const adjustConstraintIndicesForStepDeletion = (
                     .map((stepIndex) =>
                         stepIndex > deletedIndex ? stepIndex - 1 : stepIndex
                     );
+            }
+
+            // Adjust targetPairs array (new unified structure)
+            if (constraint.targetPairs) {
+                updatedConstraint.targetPairs = constraint.targetPairs
+                    .filter((target) => target.stepIndex !== deletedIndex)
+                    .map((target) => ({
+                        ...target,
+                        stepIndex:
+                            target.stepIndex > deletedIndex
+                                ? target.stepIndex - 1
+                                : target.stepIndex,
+                    }));
             }
 
             if (constraint.routeConditions) {
@@ -903,6 +962,16 @@ export const adjustConstraintIndicesForStepMove = (
         if (constraint.targetSteps) {
             updatedConstraint.targetSteps =
                 constraint.targetSteps.map(adjustStepIndex);
+        }
+
+        // Adjust targetPairs array (new unified structure)
+        if (constraint.targetPairs) {
+            updatedConstraint.targetPairs = constraint.targetPairs.map(
+                (target) => ({
+                    ...target,
+                    stepIndex: adjustStepIndex(target.stepIndex),
+                })
+            );
         }
 
         // Adjust routeConditions

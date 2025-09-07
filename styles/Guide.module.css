@@ -1,0 +1,253 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.header h2 {
+  font-size: 1.5rem;
+  color: #7f8c8d;
+  font-weight: 300;
+}
+
+.tableOfContents {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 3rem;
+  border-left: 4px solid #3498db;
+}
+
+.tableOfContents h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.tableOfContents ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tableOfContents li {
+  margin: 0.5rem 0;
+}
+
+.tableOfContents a {
+  color: #3498db;
+  text-decoration: none;
+  padding: 0.25rem 0;
+  display: block;
+  transition: color 0.2s ease;
+}
+
+.tableOfContents a:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 4rem;
+  scroll-margin-top: 2rem;
+}
+
+.section h2 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #3498db;
+}
+
+.section h3 {
+  font-size: 1.4rem;
+  color: #34495e;
+  margin: 2rem 0 1rem 0;
+}
+
+.section h4 {
+  font-size: 1.2rem;
+  color: #34495e;
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+.section p {
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+.section ul,
+.section ol {
+  margin-bottom: 1.5rem;
+  padding-left: 2rem;
+}
+
+.section li {
+  margin-bottom: 0.5rem;
+}
+
+.imageContainer {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.guideImage {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.guideImage:hover {
+  transform: scale(1.02);
+}
+
+.videoContainer {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.guideVideo {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.caption {
+  font-style: italic;
+  color: #7f8c8d;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.troubleItem {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.troubleItem h4 {
+  color: #c53030;
+  margin-top: 0;
+}
+
+.faqItem {
+  background: #f0fff4;
+  border: 1px solid #c6f6d5;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.faqItem h4 {
+  color: #2f855a;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.faqItem p {
+  margin-bottom: 0;
+  color: #2d3748;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e0e0e0;
+  color: #7f8c8d;
+}
+
+.footer a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .section h2 {
+    font-size: 1.5rem;
+  }
+  
+  .section h3 {
+    font-size: 1.2rem;
+  }
+  
+  .tableOfContents {
+    padding: 1rem;
+  }
+  
+  .troubleItem,
+  .faqItem {
+    padding: 1rem;
+  }
+}
+
+/* 프린트 스타일 */
+@media print {
+  .container {
+    max-width: none;
+    padding: 0;
+  }
+  
+  .header {
+    border-bottom: 2px solid #000;
+  }
+  
+  .tableOfContents {
+    background: none;
+    border: 1px solid #000;
+  }
+  
+  .section {
+    break-inside: avoid;
+  }
+  
+  .guideImage,
+  .guideVideo {
+    max-width: 100%;
+    break-inside: avoid;
+  }
+}

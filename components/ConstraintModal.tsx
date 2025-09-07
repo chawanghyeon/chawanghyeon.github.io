@@ -81,7 +81,7 @@ const mergeConstraintTargets = (
 ): {mergedConstraint: WorkflowConstraint, hasNewTargets: boolean} => {
     const existingTargets = new Set<string>();
     
-    // Collect existing targets
+    // Collect existing targets from various sources
     if (existingConstraint.targetStepIndex !== undefined && existingConstraint.targetOptionId) {
         existingTargets.add(`${existingConstraint.targetStepIndex}:${existingConstraint.targetOptionId}`);
     }
@@ -91,6 +91,13 @@ const mergeConstraintTargets = (
             if (existingConstraint.targetStepIndex !== undefined) {
                 existingTargets.add(`${existingConstraint.targetStepIndex}:${optionId}`);
             }
+        });
+    }
+    
+    // Handle existing multi-step targets
+    if (existingConstraint.targetPairs) {
+        existingConstraint.targetPairs.forEach(target => {
+            existingTargets.add(`${target.stepIndex}:${target.optionId}`);
         });
     }
     
@@ -114,14 +121,24 @@ const mergeConstraintTargets = (
         };
     }
     
-    // Convert back to constraint format
-    const targetArray = Array.from(allTargets).map(target => {
-        const [stepIndex, optionId] = target.split(':');
-        return { stepIndex: parseInt(stepIndex), optionId };
-    });
+    // Convert back to comprehensive constraint format
+    const allTargetPairs = Array.from(allTargets).map(target => {
+        const parts = target.split(':');
+        if (parts.length !== 2) {
+            console.warn(`Invalid target format: ${target}`);
+            return null;
+        }
+        const [stepIndexStr, optionId] = parts;
+        const stepIndex = parseInt(stepIndexStr, 10);
+        if (isNaN(stepIndex)) {
+            console.warn(`Invalid stepIndex in target: ${target}`);
+            return null;
+        }
+        return { stepIndex, optionId };
+    }).filter((item): item is { stepIndex: number; optionId: string } => item !== null);
     
-    // Group by step index
-    const targetsByStep = targetArray.reduce((acc, target) => {
+    // Group by step index for organized management
+    const targetsByStep = allTargetPairs.reduce((acc, target) => {
         if (!acc[target.stepIndex]) {
             acc[target.stepIndex] = [];
         }
@@ -129,17 +146,18 @@ const mergeConstraintTargets = (
         return acc;
     }, {} as {[stepIndex: number]: string[]});
     
-    // For now, we'll use the first step as the primary target
-    // In the future, we might want to support multi-step constraints
-    const primaryStepIndex = Math.min(...Object.keys(targetsByStep).map(Number));
-    const primaryOptionIds = targetsByStep[primaryStepIndex];
+    const targetSteps = Object.keys(targetsByStep).map(Number).sort();
+    const primaryStepIndex = existingConstraint.targetStepIndex ?? targetSteps[0];
+    const primaryOptionIds = targetsByStep[primaryStepIndex] || [];
     
     return {
         mergedConstraint: {
             ...existingConstraint,
             targetStepIndex: primaryStepIndex,
             targetOptionId: primaryOptionIds[0], // Keep first option for compatibility
-            targetOptionIds: primaryOptionIds,
+            targetOptionIds: primaryOptionIds, // Options for primary step
+            targetSteps: targetSteps, // All affected steps
+            targetPairs: allTargetPairs, // Complete multi-step information
             updatedAt: Date.now()
         },
         hasNewTargets: true
@@ -180,7 +198,15 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
     // Auto-populate route conditions from selected path
     const autoRouteConditions: RouteCondition[] = Object.entries(selectedPath)
         .filter(([, value]) => value)
-        .map(([key, value]) => ({ stepIndex: parseInt(key), optionId: value }))
+        .map(([key, value]) => {
+            const stepIndex = parseInt(key, 10);
+            if (isNaN(stepIndex)) {
+                console.warn(`Invalid stepIndex in selectedPath: ${key}`);
+                return null;
+            }
+            return { stepIndex, optionId: value };
+        })
+        .filter((item): item is RouteCondition => item !== null)
         .sort((a, b) => a.stepIndex - b.stepIndex);
 
     // Basic state
@@ -200,10 +226,32 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
     // Multi-selection state for targets
     const [selectedTargets, setSelectedTargets] = useState<{[stepIndex: number]: string[]}>(
         () => {
-            if (existingConstraint?.targetStepIndex !== undefined && existingConstraint?.targetOptionId) {
-                return {
-                    [existingConstraint.targetStepIndex]: [existingConstraint.targetOptionId]
-                };
+            if (existingConstraint) {
+                const targets: {[stepIndex: number]: string[]} = {};
+                
+                // Handle legacy single target
+                if (existingConstraint.targetStepIndex !== undefined && existingConstraint.targetOptionId) {
+                    targets[existingConstraint.targetStepIndex] = [existingConstraint.targetOptionId];
+                }
+                
+                // Handle targetOptionIds for the primary step
+                if (existingConstraint.targetStepIndex !== undefined && existingConstraint.targetOptionIds) {
+                    targets[existingConstraint.targetStepIndex] = existingConstraint.targetOptionIds;
+                }
+                
+                // Handle multi-step targets if supported
+                if (existingConstraint.targetSteps && existingConstraint.targetPairs) {
+                    existingConstraint.targetPairs.forEach(target => {
+                        if (!targets[target.stepIndex]) {
+                            targets[target.stepIndex] = [];
+                        }
+                        if (!targets[target.stepIndex].includes(target.optionId)) {
+                            targets[target.stepIndex].push(target.optionId);
+                        }
+                    });
+                }
+                
+                return targets;
             }
             return {};
         }
@@ -644,24 +692,52 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
             });
         });
 
-        if (isEditing && constraintId && targetPairs.length === 1) {
-            // Editing mode: update existing constraint
-            const target = targetPairs[0];
-            const createConstraint = (targetStepIndex: number, targetOptionId: string, suffix?: string) => ({
-                name: targetPairs.length > 1 ? `${finalName}_${suffix || targetStepIndex}` : finalName,
-                description: description.trim(),
-                action: constraintAction,
-                targetStepIndex,
-                targetOptionIds: [targetOptionId], // Use array format for consistency
-                sourceStepIndex: -1, // Route-based constraints don't use source step
-                sourceOptionId: "", // Route-based constraints don't use source option
-                scope: "route-based" as const,
-                priority,
-                isActive: true,
-                createdAt: Date.now(),
-            });
+        if (isEditing && constraintId) {
+            // Editing mode: update existing constraint with new unified approach
+            const createConstraint = () => {
+                // Group targets by step for comprehensive organization
+                const targetsByStep = targetPairs.reduce((acc, target) => {
+                    if (!acc[target.stepIndex]) {
+                        acc[target.stepIndex] = [];
+                    }
+                    acc[target.stepIndex].push(target.optionId);
+                    return acc;
+                }, {} as {[stepIndex: number]: string[]});
+                
+                const targetSteps = Object.keys(targetsByStep).map(Number).sort();
+                const stepNames = targetSteps.map(stepIndex => 
+                    steps[stepIndex]?.displayName || steps[stepIndex]?.name || `Step${stepIndex}`
+                );
+                
+                const constraintName = targetSteps.length > 1 
+                    ? `${finalName}_${stepNames.join('+')}` 
+                    : finalName;
+                
+                const primaryStepIndex = targetSteps[0];
+                if (primaryStepIndex === undefined) {
+                    console.warn("No target steps found for constraint creation");
+                    return;
+                }
+
+                return {
+                    name: constraintName,
+                    description: description.trim(),
+                    action: constraintAction,
+                    targetStepIndex: primaryStepIndex, // Primary step for backward compatibility
+                    targetOptionId: targetsByStep[primaryStepIndex]?.[0], // First option for compatibility
+                    targetOptionIds: targetsByStep[primaryStepIndex] || [], // Options for primary step
+                    targetSteps: targetSteps, // All affected steps
+                    targetPairs: targetPairs, // Complete multi-step target information
+                    sourceStepIndex: -1, // Route-based constraints don't use source step
+                    sourceOptionId: "", // Route-based constraints don't use source option
+                    scope: "route-based" as const,
+                    priority,
+                    isActive: true,
+                    updatedAt: Date.now(),
+                };
+            };
             
-            const baseConstraint = createConstraint(target.stepIndex, target.optionId);
+            const baseConstraint = createConstraint();
             
             if (useAdvancedConditions) {
                 const constraintWithExpression = {
@@ -683,7 +759,7 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
         } else {
             // Creating new constraints - check for existing policies to merge
             if (isEditing && constraintId) {
-                // Delete old constraint first when editing to multiple targets
+                // Delete old constraint first when editing
                 onDeleteConstraint(constraintId);
             }
             
@@ -714,90 +790,81 @@ const ConstraintModal: React.FC<ConstraintModalProps> = ({
                     return; // Don't close immediately
                 }
             } else {
-                // Create new constraint(s) - filter out targets that already exist in other constraints
-                const filteredTargetPairs = targetPairs.filter(target => {
-                    // Check if this specific target already exists in any other constraint with same conditions
-                    return !constraints.some(constraint => {
-                        if (!doesConstraintMatch(
-                            constraint,
-                            routeConditions,
-                            conditionExpression,
-                            conditionOperator,
-                            constraintAction,
-                            useAdvancedConditions
-                        )) {
-                            return false;
+                // Create single unified constraint for all targets with same conditions
+                const createUnifiedConstraint = () => {
+                    // Group targets by step for better organization in the constraint
+                    const targetsByStep = targetPairs.reduce((acc, target) => {
+                        if (!acc[target.stepIndex]) {
+                            acc[target.stepIndex] = [];
                         }
-                        
-                        // Check if this target already exists in this constraint
-                        const targetKey = `${target.stepIndex}:${target.optionId}`;
-                        const existingTargets = new Set<string>();
-                        
-                        if (constraint.targetStepIndex !== undefined && constraint.targetOptionId) {
-                            existingTargets.add(`${constraint.targetStepIndex}:${constraint.targetOptionId}`);
-                        }
-                        
-                        if (constraint.targetOptionIds) {
-                            constraint.targetOptionIds.forEach(optionId => {
-                                if (constraint.targetStepIndex !== undefined) {
-                                    existingTargets.add(`${constraint.targetStepIndex}:${optionId}`);
-                                }
-                            });
-                        }
-                        
-                        return existingTargets.has(targetKey);
-                    });
-                });
-                
-                if (filteredTargetPairs.length === 0) {
-                    setStatusMessage('모든 대상이 이미 기존 정책들에 포함되어 있어 생성을 건너뛰었습니다.');
-                    setTimeout(() => onClose(), 2000); // Show message for 2 seconds before closing
-                    return; // Don't close immediately
-                } else {
-                    // Create new constraint(s) only for targets that don't exist
-                    filteredTargetPairs.forEach((target) => {
-                        const stepName = steps[target.stepIndex]?.displayName || steps[target.stepIndex]?.name || target.stepIndex;
-                        const optionName = steps[target.stepIndex]?.options.find(opt => opt.id === target.optionId)?.displayName || target.optionId;
-                        const suffix = `${stepName}_${optionName}`;
-                        
-                        const createConstraint = (targetStepIndex: number, targetOptionId: string, suffix?: string) => ({
-                            name: filteredTargetPairs.length > 1 ? `${finalName}_${suffix || targetStepIndex}` : finalName,
-                            description: description.trim(),
-                            action: constraintAction,
-                            targetStepIndex,
-                            targetOptionIds: [targetOptionId], // Use array format for consistency
-                            sourceStepIndex: -1, // Route-based constraints don't use source step
-                            sourceOptionId: "", // Route-based constraints don't use source option
-                            scope: "route-based" as const,
-                            priority,
-                            isActive: true,
-                            createdAt: Date.now(),
-                        });
-                        
-                        const baseConstraint = createConstraint(target.stepIndex, target.optionId, suffix);
-                        
-                        if (useAdvancedConditions) {
-                            const constraintWithExpression = {
-                                ...baseConstraint,
-                                conditionExpression,
-                                routeConditions: [],
-                                conditionOperator: "AND" as LogicalOperator,
-                            };
-                            onAddConstraint(constraintWithExpression);
-                        } else {
-                            const constraintWithConditions = {
-                                ...baseConstraint,
-                                routeConditions,
-                                conditionOperator,
-                                conditionExpression: undefined,
-                            };
-                            onAddConstraint(constraintWithConditions);
-                        }
-                    });
+                        acc[target.stepIndex].push(target.optionId);
+                        return acc;
+                    }, {} as {[stepIndex: number]: string[]});
                     
-                    // Close modal after successful creation
-                    onClose();
+                    // Create a comprehensive target structure
+                    const targetSteps = Object.keys(targetsByStep).map(Number).sort();
+                    
+                    // For multi-step targets, create a descriptive name
+                    const stepNames = targetSteps.map(stepIndex => 
+                        steps[stepIndex]?.displayName || steps[stepIndex]?.name || `Step${stepIndex}`
+                    );
+                    const constraintName = targetSteps.length > 1 
+                        ? `${finalName}_${stepNames.join('+')}` 
+                        : finalName;
+                    
+                    const primaryStepIndex = targetSteps[0];
+                    if (primaryStepIndex === undefined) {
+                        console.warn("No target steps found for constraint creation");
+                        return;
+                    }
+                    
+                    return {
+                        name: constraintName,
+                        description: description.trim(),
+                        action: constraintAction,
+                        // Use the first step as primary for backward compatibility
+                        targetStepIndex: primaryStepIndex,
+                        targetOptionId: targetsByStep[primaryStepIndex]?.[0], // First option with safe access
+                        // Extended multi-step support
+                        targetSteps: targetSteps, // All affected steps
+                        targetOptionIds: targetsByStep[primaryStepIndex] || [], // Options for primary step with fallback
+                        // Store all target pairs for complete information
+                        targetPairs: targetPairs, // Complete multi-step target info
+                        sourceStepIndex: -1, // Route-based constraints don't use source step
+                        sourceOptionId: "", // Route-based constraints don't use source option
+                        scope: "route-based" as const,
+                        priority,
+                        isActive: true,
+                        createdAt: Date.now(),
+                    };
+                };
+                
+                const baseConstraint = createUnifiedConstraint();
+                if (!baseConstraint) {
+                    console.error("Failed to create base constraint");
+                    return;
                 }
+                
+                if (useAdvancedConditions) {
+                    const constraintWithExpression = {
+                        ...baseConstraint,
+                        conditionExpression,
+                        routeConditions: [],
+                        conditionOperator: "AND" as LogicalOperator,
+                    };
+                    onAddConstraint(constraintWithExpression);
+                } else {
+                    const constraintWithConditions = {
+                        ...baseConstraint,
+                        routeConditions,
+                        conditionOperator,
+                        conditionExpression: undefined,
+                    };
+                    onAddConstraint(constraintWithConditions);
+                }
+                
+                // Close modal after successful creation
+                onClose();
             }
         }
     };

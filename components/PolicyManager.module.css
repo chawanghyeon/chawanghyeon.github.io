@@ -484,8 +484,34 @@
 
 .optionsList {
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 300px;
+}
+
+.multiStepTarget {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.multiStepTarget:last-child {
+    border-bottom: none;
+}
+
+.stepLabel {
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+}
+
+.optionsGroup {
+    display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    margin-left: 8px;
 }
 
 .optionTag {
@@ -497,9 +523,50 @@
     white-space: nowrap;
 }
 
+/* Target step cell styling */
+.targetStepCell {
+    display: flex;
+    align-items: center;
+}
+
+.multiStepLabel {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 12px;
+    cursor: help;
+}
+
+.singleStepLabel {
+    color: #374151;
+    font-size: 14px;
+}
+
 .noOptionsText {
     color: #9ca3af;
     font-style: italic;
+    font-size: 12px;
+}
+
+/* Target step cell improvements */
+.targetStepCell {
+    max-width: 200px;
+}
+
+.multiStepLabel {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: help;
+}
+
+.singleStepLabel {
+    color: #374151;
     font-size: 12px;
 }
 

@@ -32,6 +32,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({ currentTab, onTabChange }) => {
                         {tab.label}
                     </button>
                 ))}
+                <span 
+                    onClick={() => window.location.href = '/guide/'} 
+                    style={{ 
+                        padding: "8px 16px", 
+                        backgroundColor: "#3498db", 
+                        color: "white", 
+                        cursor: "pointer",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        marginLeft: "16px"
+                    }}
+                >
+                    📖 사용자 가이드
+                </span>
             </div>
         </header>
     );
