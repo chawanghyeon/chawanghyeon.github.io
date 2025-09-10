@@ -496,6 +496,69 @@ export const useSheetManager = () => {
         }));
     }, []);
 
+    // Create sheets from parsed Excel data
+    const createSheetsFromExcel = useCallback(
+        (parsedSheets: Array<{ name: string; steps: Array<{ name: string; options: string[] }> }>) => {
+            setWorkflowData((prev) => {
+                const newSheets = [...prev.sheets];
+                let nextId = prev.nextSheetId;
+
+                parsedSheets.forEach((ps) => {
+                    const sheetId = `sheet_${nextId}`;
+                    nextId++;
+
+                    const steps = ps.steps.map((s, si) => ({
+                        id: generateId("step"),
+                        name: `${si + 1}단계`,
+                        displayName: s.name || `${si + 1}단계`,
+                        isActive: true,
+                        options: s.options.map((opt, oi) => ({
+                            id: generateId("option"),
+                            name: opt || `옵션${oi + 1}`,
+                            displayName: opt || `옵션${oi + 1}`,
+                            isActive: true,
+                        })),
+                    }));
+
+                    const newSheet: WorkflowSheet = {
+                        id: sheetId,
+                        name: ps.name || sheetId,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                        steps: steps.length > 0 ? steps : [
+                            {
+                                id: generateId("step"),
+                                name: "1단계",
+                                displayName: "",
+                                options: [
+                                    {
+                                        id: generateId("option"),
+                                        name: "옵션1",
+                                        displayName: "",
+                                        isActive: true,
+                                    },
+                                ],
+                                isActive: true,
+                            },
+                        ],
+                        constraints: {},
+                    };
+
+                    newSheets.push(newSheet);
+                });
+
+                return {
+                    ...prev,
+                    sheets: newSheets,
+                    activeSheetId: newSheets[newSheets.length - 1].id,
+                    nextSheetId: nextId,
+                    lastUpdated: Date.now(),
+                };
+            });
+        },
+        []
+    );
+
     // Step management functions (operating on current sheet)
     const addRootStep = useCallback(() => {
         updateCurrentSheet((sheet) => {
@@ -976,6 +1039,7 @@ export const useSheetManager = () => {
         sheets: workflowData.sheets,
         activeSheetId: workflowData.activeSheetId,
         createSheet,
+    createSheetsFromExcel,
         renameSheet,
         copySheet,
         deleteSheet,

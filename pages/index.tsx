@@ -17,6 +17,7 @@ const HomePage: React.FC = () => {
         sheets,
         activeSheetId,
         createSheet,
+    createSheetsFromExcel,
         renameSheet,
         copySheet,
         deleteSheet,
@@ -36,6 +37,7 @@ const HomePage: React.FC = () => {
         saveError,
         clearSaveError,
     } = useSheetManager();
+    
 
     const activeSheet = sheets.find((sheet) => sheet.id === activeSheetId);
 
@@ -113,6 +115,7 @@ const HomePage: React.FC = () => {
                     sheets={sheets}
                     activeSheetId={activeSheetId}
                     onCreateSheet={createSheet}
+                    onCreateSheetsFromExcel={createSheetsFromExcel}
                     onRenameSheet={renameSheet}
                     onCopySheet={copySheet}
                     onDeleteSheet={deleteSheet}
